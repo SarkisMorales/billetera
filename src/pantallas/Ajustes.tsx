@@ -1,0 +1,274 @@
+import { useMemo, useRef, useState } from 'react';
+import { EditorCategoria, EditorCuenta } from '../componentes/Editores';
+import { guardarRespaldo } from '../datos/backup';
+import { actualizarCotizaciones } from '../datos/cotizacion';
+import { repositorio } from '../datos/repositorio';
+import { borrarTodo, importar } from '../datos/respaldo';
+import { saldos } from '../dominio/calculos';
+import { formatearMonto } from '../dominio/dinero';
+import { NOMBRE_CASA, type Categoria, type Cuenta, type Tema, type TipoCategoria } from '../dominio/tipos';
+import type { Billetera } from '../estado/useBilletera';
+
+type Editando =
+  | { que: 'cuenta'; cuenta: Cuenta | null }
+  | { que: 'categoria'; categoria: Categoria | null; tipo: TipoCategoria }
+  | null;
+
+function fechaHora(iso: string): string {
+  return new Date(iso).toLocaleString('es-AR', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+export function Ajustes({
+  billetera,
+  enLinea,
+  avisar,
+}: {
+  billetera: Billetera;
+  enLinea: boolean;
+  avisar: (texto: string) => void;
+}) {
+  const { cuentas, categorias, movimientos, ajustes } = billetera;
+  const [editando, setEditando] = useState<Editando>(null);
+  const [bajando, setBajando] = useState(false);
+  const [manualTexto, setManualTexto] = useState(ajustes.cotizacionManual?.toString() ?? '');
+  const archivo = useRef<HTMLInputElement>(null);
+  const s = useMemo(() => saldos(cuentas, movimientos), [cuentas, movimientos]);
+
+  const usos = useMemo(() => {
+    const n = new Map<string, number>();
+    for (const m of movimientos) {
+      n.set(m.cuentaId, (n.get(m.cuentaId) ?? 0) + 1);
+      if (m.cuentaDestinoId) n.set(m.cuentaDestinoId, (n.get(m.cuentaDestinoId) ?? 0) + 1);
+    }
+    return n;
+  }, [movimientos]);
+
+  async function refrescar() {
+    setBajando(true);
+    const ok = await actualizarCotizaciones(true);
+    setBajando(false);
+    avisar(ok ? 'Cotización actualizada' : 'No se pudo bajar la cotización');
+  }
+
+  async function guardarManual() {
+    const valor = Number(manualTexto.replace(/\./g, '').replace(',', '.'));
+    await repositorio.guardarAjustes({ cotizacionManual: manualTexto.trim() && valor > 0 ? valor : null });
+    avisar(manualTexto.trim() ? 'Cotización manual guardada' : 'Se usa la cotización de internet');
+  }
+
+  async function respaldar() {
+    if (await guardarRespaldo()) avisar('Respaldo guardado');
+  }
+
+  async function alElegirArchivo(ev: React.ChangeEvent<HTMLInputElement>) {
+    const f = ev.target.files?.[0];
+    ev.target.value = '';
+    if (!f) return;
+    try {
+      const r = await importar(JSON.parse(await f.text()));
+      avisar(`Importado: ${r.nuevos} nuevos, ${r.actualizados} actualizados`);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'No se pudo leer el archivo.');
+    }
+  }
+
+  async function borrar() {
+    const respuesta = prompt('Esto borra TODO de este teléfono. Escribí BORRAR para confirmar.');
+    if (respuesta?.trim().toUpperCase() !== 'BORRAR') return;
+    await borrarTodo();
+    await repositorio.sembrarSiVacia();
+    avisar('Datos borrados');
+  }
+
+  const grupos: [TipoCategoria, string][] = [
+    ['gasto', 'Categorías de gasto'],
+    ['ingreso', 'Categorías de ingreso'],
+  ];
+
+  return (
+    <div className="pantalla">
+      <section className="bloque">
+        <h2 className="bloque-titulo">Dólar</h2>
+        <p className="ayuda">
+          Con éste se valúan tus dólares y los gastos en USD. Se actualiza solo cuando hay conexión.
+        </p>
+        <div className="fichas">
+          {(Object.keys(NOMBRE_CASA) as (keyof typeof NOMBRE_CASA)[]).map((casa) => {
+            const c = ajustes.cotizaciones.find((x) => x.casa === casa);
+            return (
+              <button
+                key={casa}
+                type="button"
+                className="ficha"
+                aria-pressed={ajustes.casa === casa}
+                onClick={() => repositorio.guardarAjustes({ casa })}
+              >
+                <span>{NOMBRE_CASA[casa]}</span>
+                <span className="ficha-sub num">{c ? `$ ${c.venta.toLocaleString('es-AR')}` : '—'}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="fila-ajuste">
+          <span className="ayuda">
+            {ajustes.cotizacionesBajadasEn
+              ? `Bajada ${fechaHora(ajustes.cotizacionesBajadasEn)} · dolarapi.com`
+              : 'Nunca se bajó'}
+          </span>
+          <button type="button" className="btn chico" onClick={refrescar} disabled={!enLinea || bajando}>
+            {bajando ? 'Bajando…' : enLinea ? 'Actualizar' : 'Sin conexión'}
+          </button>
+        </div>
+        <div className="fila-campos">
+          <label className="campo crece">
+            <span>Cotización manual (pisa a la de internet)</span>
+            <input
+              inputMode="decimal"
+              placeholder="Vacío = usar internet"
+              value={manualTexto}
+              onChange={(e) => setManualTexto(e.target.value)}
+            />
+          </label>
+          <button type="button" className="btn alinear-abajo" onClick={guardarManual}>
+            Usar
+          </button>
+        </div>
+      </section>
+
+      <section className="bloque">
+        <div className="bloque-cabecera">
+          <h2 className="bloque-titulo">Cuentas</h2>
+          <button type="button" className="btn-texto" onClick={() => setEditando({ que: 'cuenta', cuenta: null })}>
+            + Agregar
+          </button>
+        </div>
+        <div className="lista">
+          {cuentas.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              className={`fila${c.archivada ? ' archivada' : ''}`}
+              onClick={() => setEditando({ que: 'cuenta', cuenta: c })}
+            >
+              <span className="fila-texto">
+                <span className="fila-titulo">{c.nombre}</span>
+                <span className="fila-sub">
+                  {c.moneda} {c.archivada && '· archivada'}
+                </span>
+              </span>
+              <span className="fila-monto num">{formatearMonto(s.get(c.id) ?? 0, c.moneda)}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {grupos.map(([tipo, titulo]) => (
+        <section className="bloque" key={tipo}>
+          <div className="bloque-cabecera">
+            <h2 className="bloque-titulo">{titulo}</h2>
+            <button
+              type="button"
+              className="btn-texto"
+              onClick={() => setEditando({ que: 'categoria', categoria: null, tipo })}
+            >
+              + Agregar
+            </button>
+          </div>
+          <div className="lista">
+            {categorias
+              .filter((c) => c.tipo === tipo)
+              .map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  className={`fila${c.archivada ? ' archivada' : ''}`}
+                  onClick={() => setEditando({ que: 'categoria', categoria: c, tipo })}
+                >
+                  <span className="fila-icono" aria-hidden>
+                    {c.emoji}
+                  </span>
+                  <span className="fila-texto">
+                    <span className="fila-titulo">{c.nombre}</span>
+                    {c.archivada && <span className="fila-sub">archivada</span>}
+                  </span>
+                  {tipo === 'gasto' && (
+                    <span className="fila-monto num suave">
+                      {c.presupuesto ? `tope ${formatearMonto(c.presupuesto, 'ARS', { sinDecimales: true })}` : 'sin tope'}
+                    </span>
+                  )}
+                </button>
+              ))}
+          </div>
+        </section>
+      ))}
+
+      <section className="bloque">
+        <h2 className="bloque-titulo">Respaldo</h2>
+        <p className="ayuda">
+          Tus datos viven sólo en este teléfono. Guardá el respaldo en iCloud Drive (Compartir → Guardar en
+          Archivos) una vez por semana.{' '}
+          {ajustes.ultimoBackup ? `Último: ${fechaHora(ajustes.ultimoBackup)}.` : 'Todavía no hiciste ninguno.'}
+        </p>
+        <div className="botones">
+          <button type="button" className="btn principal" onClick={respaldar}>
+            Guardar respaldo
+          </button>
+          <button type="button" className="btn" onClick={() => archivo.current?.click()}>
+            Importar
+          </button>
+          <input ref={archivo} type="file" accept="application/json,.json" hidden onChange={alElegirArchivo} />
+        </div>
+      </section>
+
+      <section className="bloque">
+        <h2 className="bloque-titulo">Apariencia</h2>
+        <div className="segmentado">
+          {(
+            [
+              ['sistema', 'Automático'],
+              ['oscuro', 'Oscuro'],
+              ['claro', 'Claro'],
+            ] as [Tema, string][]
+          ).map(([t, nombre]) => (
+            <button
+              key={t}
+              type="button"
+              role="radio"
+              aria-checked={ajustes.tema === t}
+              onClick={() => repositorio.guardarAjustes({ tema: t })}
+            >
+              {nombre}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="bloque">
+        <button type="button" className="btn peligro ancho" onClick={borrar}>
+          Borrar todos los datos
+        </button>
+      </section>
+
+      {editando?.que === 'cuenta' && (
+        <EditorCuenta
+          cuenta={editando.cuenta}
+          saldoActual={editando.cuenta ? (s.get(editando.cuenta.id) ?? 0) : 0}
+          tieneMovimientos={editando.cuenta ? (usos.get(editando.cuenta.id) ?? 0) > 0 : false}
+          alCerrar={() => setEditando(null)}
+        />
+      )}
+      {editando?.que === 'categoria' && (
+        <EditorCategoria
+          categoria={editando.categoria}
+          tipoNueva={editando.tipo}
+          alCerrar={() => setEditando(null)}
+        />
+      )}
+    </div>
+  );
+}
