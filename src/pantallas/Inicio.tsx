@@ -3,12 +3,12 @@ import {
   cotizacionVigente,
   estadoPresupuestos,
   patrimonio,
-  proyeccionGasto,
   resumenMes,
   saldos,
 } from '../dominio/calculos';
 import { formatearMonto } from '../dominio/dinero';
 import { diasEntre, hoy, mesDe, nombreMes } from '../dominio/fechas';
+import { TarjetaInflacion } from '../inflacion/TarjetaInflacion';
 import { NOMBRE_CASA, type Cuenta } from '../dominio/tipos';
 import type { Billetera } from '../estado/useBilletera';
 
@@ -73,7 +73,6 @@ export function Inicio({
     [mes, movimientos, cuentas, cotizacion],
   );
   const presupuestos = estadoPresupuestos(categorias, resumen);
-  const proyeccion = proyeccionGasto(resumen, Number(hoyStr.slice(8)));
 
   const porCategoria = categorias
     .filter((c) => c.tipo === 'gasto')
@@ -162,6 +161,9 @@ export function Inicio({
         </ul>
       </section>
 
+      {/* Donde estaba "A este ritmo cerrás el mes en…". */}
+      <TarjetaInflacion ajustes={ajustes} enLinea={enLinea} />
+
       <section className="bloque">
         <div className="bloque-cabecera">
           <h2 className="bloque-titulo">{nombreMes(mes)}</h2>
@@ -170,15 +172,6 @@ export function Inicio({
           </button>
         </div>
 
-        {/* Lo gastado y lo que entró en el mes están en la tarjeta azul de arriba. */}
-        {proyeccion !== null && (
-          <div className="kpis">
-            <div className="kpi">
-              <span className="rotulo">A este ritmo cerrás el mes en</span>
-              <span className="kpi-valor num">{formatearMonto(proyeccion, 'ARS', { sinDecimales: true })}</span>
-            </div>
-          </div>
-        )}
 
         {porCategoria.length === 0 && presupuestos.length === 0 ? (
           <p className="vacio">Todavía no cargaste gastos este mes. Tocá + para el primero.</p>

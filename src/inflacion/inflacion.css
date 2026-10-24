@@ -1,0 +1,74 @@
+/* Inicio → Inflación. Una sola serie, en el azul de la app. */
+
+.infl-selector { padding: 3px; }
+.infl-selector button { padding: 5px 10px; font-size: 13px; flex: none; white-space: nowrap; }
+
+.infl-tarjeta {
+  display: grid;
+  gap: 16px;
+  padding: 18px 16px 14px;
+  background: var(--superficie);
+  border: 1px solid var(--borde-tarjeta);
+  border-radius: var(--r);
+  box-shadow: var(--sombra);
+}
+
+.infl-arriba { display: grid; grid-template-columns: 1fr 1fr; }
+.infl-arriba > div { display: grid; gap: 2px; align-content: start; min-width: 0; }
+.infl-anio { border-left: 1px solid var(--borde-tarjeta); padding-left: 16px; }
+.infl-rotulo { font-size: 13px; font-weight: 600; color: var(--texto-suave); }
+.infl-grande { font-size: 34px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; }
+.infl-mediana { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.25; }
+.infl-sub { font-size: 13px; color: var(--texto-suave); display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+
+.infl-meses { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.infl-meses li {
+  display: grid;
+  grid-template-columns: 34px 1fr 48px 96px;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+}
+.infl-mes { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.infl-manual { color: var(--acento); }
+.infl-pista { height: 8px; border-radius: 99px; background: var(--superficie-alta); overflow: hidden; }
+.infl-relleno { display: block; height: 100%; border-radius: 99px; background: var(--degradado); }
+.infl-valor { font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+
+.infl-cambio {
+  justify-self: start;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 99px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.infl-meses .infl-cambio { justify-self: end; }
+/* Que la inflación suba es malo: rojo. Que baje, verde. Siempre con flecha y palabra. */
+.infl-cambio.sube { color: var(--rojo); background: color-mix(in srgb, var(--rojo) 12%, var(--superficie)); }
+.infl-cambio.baja { color: var(--verde); background: color-mix(in srgb, var(--verde) 12%, var(--superficie)); }
+.infl-cambio.neutro { color: var(--texto-suave); background: var(--superficie-alta); }
+
+.infl-periodo { margin: 0; font-size: 15px; line-height: 1.45; }
+.infl-aviso { color: var(--ambar); font-weight: 600; }
+
+.infl-pie {
+  display: grid;
+  gap: 2px;
+  padding-top: 10px;
+  border-top: 1px solid var(--borde-tarjeta);
+}
+.infl-pie .btn-texto { justify-self: start; }
+.infl-estado { font-size: 12px; color: var(--texto-suave); }
+.infl-estado.atrasado { color: var(--ambar); font-weight: 600; }
+
+.infl-select {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  background: var(--superficie);
+  border: 1px solid var(--borde-tarjeta);
+  border-radius: var(--r-chico);
+}
+.infl-campo-pct { width: 110px; }

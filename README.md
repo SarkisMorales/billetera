@@ -16,7 +16,7 @@ teléfono: no hay servidor, cuenta ni login.
 
 | Pantalla | Qué muestra |
 | --- | --- |
-| Inicio | Patrimonio total en pesos y dólares (con un ojito para ocultar los montos), lo que entró y gastaste en el mes, saldo por cuenta, gasto por categoría con presupuesto y proyección a fin de mes. |
+| Inicio | Patrimonio total en pesos y dólares (con un ojito para ocultar los montos), lo que entró y gastaste en el mes, saldo por cuenta, inflación mes a mes y gasto por categoría con presupuesto. |
 | Movimientos | Mes por mes, agrupado por día, con buscador y filtro por cuenta y categoría. Tocás uno para editarlo o borrarlo. |
 | Reportes | Cruza cuentas, categorías, movimientos, dólar e inflación. Ver abajo. |
 | Ajustes | Dólar de referencia, cuentas, categorías y presupuestos, Archivos y Transferencias, tema. |
@@ -39,6 +39,23 @@ El botón **+** carga un gasto, un ingreso o una transferencia. Recuerda la
 
 Cotización: [dolarapi.com](https://dolarapi.com), se actualiza como mucho
 una vez por hora, al abrir la app o al volver la señal.
+
+## Inflación (Inicio)
+
+Último dato mensual, acumulada del año y los últimos **3 o 6 meses** mes a
+mes, cada uno comparado con el anterior en puntos (▲ subió, ▼ bajó). La
+acumulada se calcula compuesta (2% y 3% dan 5,06%, no 5%).
+
+- Fuente: `GET https://api.argentinadatos.com/v1/finanzas/indices/inflacion`,
+  que devuelve `[{ "fecha": "AAAA-MM-DD", "valor": 1.9 }, ...]` (fin de mes,
+  % mensual del INDEC). El dato de un mes sale a mediados del siguiente.
+- Se guarda en el teléfono y se pide **como mucho una vez por día**. Si la
+  API falla o no hay conexión, se usa lo guardado y la tarjeta avisa de qué
+  fecha es. Tras un fallo, no se reintenta antes de una hora.
+- **Cargar o corregir un mes a mano** (últimos 12 meses cerrados): pisa al
+  dato de internet, se usa también en Reportes y viaja en el archivo de
+  Archivos y Transferencias. "Usar el de internet" lo deshace.
+- Código: `src/inflacion/`.
 
 ## Reportes
 

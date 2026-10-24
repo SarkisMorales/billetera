@@ -64,7 +64,16 @@ export function Reportes({ billetera, enLinea }: { billetera: Billetera; enLinea
     };
   }, [ajustes.casa, enLinea]);
 
-  const historicos = useMemo(() => historicosGuardados(ajustes.casa), [ajustes.casa, version]);
+  // Las correcciones a mano de la inflación (Inicio → Inflación) pisan a la fuente acá también.
+  const historicos = useMemo(() => {
+    const h = historicosGuardados(ajustes.casa);
+    let inflacionHasta = h.inflacionHasta;
+    for (const [mes, valor] of Object.entries(ajustes.inflacionManual ?? {})) {
+      h.inflacion.set(mes, valor);
+      if (!inflacionHasta || mes > inflacionHasta) inflacionHasta = mes;
+    }
+    return { ...h, inflacionHasta };
+  }, [ajustes.casa, ajustes.inflacionManual, version]);
   const datos: Datos = useMemo(
     () => ({ cuentas, categorias, movimientos, cotizacion: cotizacionVigente(ajustes) }),
     [cuentas, categorias, movimientos, ajustes],

@@ -104,6 +104,12 @@ export interface Ajustes {
   cotizacionManual: number | null;
   ultimoBackup: string | null;
   tema: Tema;
+  /**
+   * Inflación mensual cargada a mano ('AAAA-MM' → %), por si la fuente se
+   * atrasa o se equivoca. Pisa al dato de internet de ese mes. Opcional: los
+   * archivos viejos no la tienen.
+   */
+  inflacionManual?: Record<string, number>;
 }
 
 export const AJUSTES_POR_DEFECTO: Ajustes = {
