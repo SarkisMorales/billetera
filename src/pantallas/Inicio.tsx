@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   cotizacionVigente,
   estadoPresupuestos,
@@ -18,6 +18,17 @@ const ICONO_CUENTA: Record<Cuenta['tipo'], string> = {
   virtual: '📱',
   otro: '💳',
 };
+
+const CLAVE_OCULTAR = 'billetera.ocultarMontos';
+
+/** El ojito de la tarjeta: para abrir la app delante de otros sin mostrar cuánto tenés. */
+function leerOculto(): boolean {
+  try {
+    return localStorage.getItem(CLAVE_OCULTAR) === '1';
+  } catch {
+    return false;
+  }
+}
 
 function haceCuanto(iso: string): string {
   const minutos = Math.floor((Date.now() - Date.parse(iso)) / 60_000);
@@ -41,7 +52,17 @@ export function Inicio({
   irAAjustes: () => void;
 }) {
   const { cuentas, categorias, movimientos, ajustes } = billetera;
+  const [oculto, setOculto] = useState(leerOculto);
   const cotizacion = cotizacionVigente(ajustes);
+
+  function alternarOculto() {
+    setOculto(!oculto);
+    try {
+      localStorage.setItem(CLAVE_OCULTAR, oculto ? '0' : '1');
+    } catch {
+      /* Sin almacenamiento: vale para esta sesión. */
+    }
+  }
   const hoyStr = hoy();
   const mes = mesDe(hoyStr);
 
@@ -68,13 +89,42 @@ export function Inicio({
   return (
     <div className="pantalla">
       <section className="total" aria-label="Patrimonio">
-        <span className="rotulo">Tenés en total</span>
-        <span className="total-valor num">
-          {p.totalEnPesos !== null ? formatearMonto(p.totalEnPesos, 'ARS', { sinDecimales: true }) : '—'}
+        <div className="total-cabecera">
+          <span className="rotulo">Tenés en total</span>
+          <button
+            type="button"
+            className="ojo"
+            aria-pressed={oculto}
+            aria-label={oculto ? 'Mostrar montos' : 'Ocultar montos'}
+            onClick={alternarOculto}
+          >
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+              <circle cx="12" cy="12" r="3" />
+              {oculto && <path d="M4 4l16 16" />}
+            </svg>
+          </button>
+          <button type="button" className="total-ir" aria-label="Ver movimientos" onClick={() => irAMovimientos(null)}>
+            ›
+          </button>
+        </div>
+        <span className="total-valor">
+          {oculto ? '$ ••••••' : p.totalEnPesos !== null ? formatearMonto(p.totalEnPesos, 'ARS', { sinDecimales: true }) : '—'}
         </span>
-        <span className="total-sub num">
-          {p.totalEnDolares !== null && `≈ ${formatearMonto(p.totalEnDolares, 'USD', { sinDecimales: true })}`}
+        <span className="total-sub">
+          {p.totalEnDolares !== null &&
+            `≈ ${oculto ? 'US$ ••••' : formatearMonto(p.totalEnDolares, 'USD', { sinDecimales: true })}`}
         </span>
+        <div className="total-division">
+          <div>
+            <span className="rotulo">Entró en {nombreMes(mes).split(' ')[0]!.toLowerCase()}</span>
+            <span className="total-mes">{oculto ? '••••' : formatearMonto(resumen.ingresos, 'ARS', { sinDecimales: true })}</span>
+          </div>
+          <div>
+            <span className="rotulo">Gastaste</span>
+            <span className="total-mes">{oculto ? '••••' : formatearMonto(resumen.gastos, 'ARS', { sinDecimales: true })}</span>
+          </div>
+        </div>
         <button type="button" className="cotizacion" onClick={irAAjustes}>
           {cotizacion ? (
             <>
@@ -120,24 +170,15 @@ export function Inicio({
           </button>
         </div>
 
-        <div className="kpis">
-          <div className="kpi">
-            <span className="rotulo">Gastaste</span>
-            <span className="kpi-valor num">{formatearMonto(resumen.gastos, 'ARS', { sinDecimales: true })}</span>
-          </div>
-          <div className="kpi">
-            <span className="rotulo">Entró</span>
-            <span className="kpi-valor num ingreso">
-              {formatearMonto(resumen.ingresos, 'ARS', { sinDecimales: true })}
-            </span>
-          </div>
-          {proyeccion !== null && (
+        {/* Lo gastado y lo que entró en el mes están en la tarjeta azul de arriba. */}
+        {proyeccion !== null && (
+          <div className="kpis">
             <div className="kpi">
-              <span className="rotulo">A este ritmo</span>
-              <span className="kpi-valor num suave">{formatearMonto(proyeccion, 'ARS', { sinDecimales: true })}</span>
+              <span className="rotulo">A este ritmo cerrás el mes en</span>
+              <span className="kpi-valor num">{formatearMonto(proyeccion, 'ARS', { sinDecimales: true })}</span>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {porCategoria.length === 0 && presupuestos.length === 0 ? (
           <p className="vacio">Todavía no cargaste gastos este mes. Tocá + para el primero.</p>

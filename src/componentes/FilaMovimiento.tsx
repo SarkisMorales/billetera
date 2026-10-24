@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+import { colorCategoria } from './colores';
 import { formatearMonto } from '../dominio/dinero';
 import type { Categoria, Cuenta, Movimiento } from '../dominio/tipos';
 
@@ -42,7 +44,7 @@ export function FilaMovimiento({
   const categoria = m.categoriaId ? categorias.get(m.categoriaId) : undefined;
   return (
     <button type="button" className="fila" onClick={alTocar}>
-      <span className="fila-icono" aria-hidden>
+      <span className="fila-icono" aria-hidden style={{ '--c': colorCategoria(categoria) } as CSSProperties}>
         {categoria?.emoji ?? '•'}
       </span>
       <span className="fila-texto">

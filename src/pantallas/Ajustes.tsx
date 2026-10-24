@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, type CSSProperties } from 'react';
+import { colorCategoria } from '../componentes/colores';
 import { EditorCategoria, EditorCuenta } from '../componentes/Editores';
 import { guardarRespaldo } from '../datos/backup';
 import { actualizarCotizaciones } from '../datos/cotizacion';
@@ -189,7 +190,7 @@ export function Ajustes({
                   className={`fila${c.archivada ? ' archivada' : ''}`}
                   onClick={() => setEditando({ que: 'categoria', categoria: c, tipo })}
                 >
-                  <span className="fila-icono" aria-hidden>
+                  <span className="fila-icono" aria-hidden style={{ '--c': colorCategoria(c) } as CSSProperties}>
                     {c.emoji}
                   </span>
                   <span className="fila-texto">

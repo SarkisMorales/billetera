@@ -10,8 +10,16 @@ import { useBilletera } from './estado/useBilletera';
 import { Ajustes } from './pantallas/Ajustes';
 import { Inicio } from './pantallas/Inicio';
 import { Movimientos } from './pantallas/Movimientos';
+import { Reportes } from './reportes';
 
-type IdPantalla = 'inicio' | 'movimientos' | 'ajustes';
+type IdPantalla = 'inicio' | 'movimientos' | 'reportes' | 'ajustes';
+
+const TITULO: Record<IdPantalla, string> = {
+  inicio: 'Billetera',
+  movimientos: 'Movimientos',
+  reportes: 'Reportes',
+  ajustes: 'Ajustes',
+};
 
 const GUARDADO = { gasto: 'Gasto guardado', ingreso: 'Ingreso guardado', transferencia: 'Transferencia guardada' } as const;
 
@@ -31,6 +39,7 @@ function Icono({ d }: { d: string }) {
 const ICONOS: Record<IdPantalla, string> = {
   inicio: 'M3 7.5A2.5 2.5 0 0 1 5.5 5h13A2.5 2.5 0 0 1 21 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5zM16 12h2',
   movimientos: 'M4 6h16M4 12h16M4 18h10',
+  reportes: 'M6 20V12M12 20V5M18 20v-6',
   ajustes: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 14H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10 3V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 21 10h0a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z',
 };
 
@@ -89,7 +98,7 @@ export function App() {
       document.documentElement.dataset.tema = tema;
       document
         .querySelector('meta[name="theme-color"]')
-        ?.setAttribute('content', tema === 'oscuro' ? '#101319' : '#F2F4F7');
+        ?.setAttribute('content', tema === 'oscuro' ? '#0A0F1C' : '#F5F7FB');
     };
     aplicar();
     const mq = matchMedia('(prefers-color-scheme: dark)');
@@ -122,9 +131,7 @@ export function App() {
   return (
     <div className="app">
       <header className="cabecera">
-        <h1>
-          {pantalla === 'inicio' ? 'Billetera' : pantalla === 'movimientos' ? 'Movimientos' : 'Ajustes'}
-        </h1>
+        <h1 className={pantalla === 'inicio' ? 'marca' : undefined}>{TITULO[pantalla]}</h1>
         {!enLinea && <span className="pastilla">Sin conexión</span>}
       </header>
 
@@ -169,12 +176,14 @@ export function App() {
               setFormulario({ existente: m });
             }}
           />
+        ) : pantalla === 'reportes' ? (
+          <Reportes billetera={billetera} enLinea={enLinea} />
         ) : (
           <Ajustes billetera={billetera} enLinea={enLinea} avisar={avisar} />
         )}
       </main>
 
-      {pantalla !== 'ajustes' && (
+      {(pantalla === 'inicio' || pantalla === 'movimientos') && (
         <button
           type="button"
           className="boton-agregar"
@@ -189,7 +198,7 @@ export function App() {
       )}
 
       <nav className="barra-pestanas" aria-label="Secciones">
-        {(['inicio', 'movimientos', 'ajustes'] as const).map((p) => (
+        {(['inicio', 'movimientos', 'reportes', 'ajustes'] as const).map((p) => (
           <button
             key={p}
             type="button"
@@ -200,7 +209,7 @@ export function App() {
             }}
           >
             <Icono d={ICONOS[p]} />
-            <span>{p === 'inicio' ? 'Inicio' : p === 'movimientos' ? 'Movimientos' : 'Ajustes'}</span>
+            <span>{p === 'inicio' ? 'Inicio' : TITULO[p]}</span>
           </button>
         ))}
       </nav>

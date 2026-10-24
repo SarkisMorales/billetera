@@ -12,12 +12,13 @@ teléfono: no hay servidor, cuenta ni login.
    iOS no borra los datos por inactividad (en Safari común sí puede, si no
    la abrís en una semana).
 
-## Las tres pantallas
+## Las cuatro pantallas
 
 | Pantalla | Qué muestra |
 | --- | --- |
-| Inicio | Patrimonio total en pesos y dólares, saldo por cuenta, lo gastado en el mes por categoría con presupuesto y proyección a fin de mes. |
+| Inicio | Patrimonio total en pesos y dólares (con un ojito para ocultar los montos), lo que entró y gastaste en el mes, saldo por cuenta, gasto por categoría con presupuesto y proyección a fin de mes. |
 | Movimientos | Mes por mes, agrupado por día, con buscador y filtro por cuenta y categoría. Tocás uno para editarlo o borrarlo. |
+| Reportes | Cruza cuentas, categorías, movimientos, dólar e inflación. Ver abajo. |
 | Ajustes | Dólar de referencia, cuentas, categorías y presupuestos, respaldo, tema. |
 
 El botón **+** carga un gasto, un ingreso o una transferencia. Recuerda la
@@ -38,6 +39,39 @@ El botón **+** carga un gasto, un ingreso o una transferencia. Recuerda la
 
 Cotización: [dolarapi.com](https://dolarapi.com), se actualiza como mucho
 una vez por hora, al abrir la app o al volver la señal.
+
+## Reportes
+
+Módulo aparte (`src/reportes/`): sólo lee los datos de la app, nunca los
+escribe, y nada del resto depende de él. Si se borra la carpeta y la pestaña
+en `App.tsx`, la app queda igual.
+
+**Período** (este mes, mes pasado, últimos 3, 6 o 12 meses):
+
+| Reporte | Cómo se calcula |
+| --- | --- |
+| Resumen | Gastado, entrado, cuánto te quedó y qué porcentaje. "Este mes" se compara contra el mes pasado **hasta el mismo día**; los demás, contra el período anterior de igual largo. Si la app no tenía datos de todo ese período anterior, no compara. |
+| Lo que llama la atención | La categoría que más subió, el día de la semana más caro, el gasto hormiga (gastos de menos de US$ 5 a la cotización de hoy), de qué cuenta sale la plata y los días sin gastos. Sólo aparece lo que tiene datos suficientes. |
+| Un día típico de la semana | La **mediana** de lo gastado cada lunes, martes, etc. Mediana para que el alquiler un lunes no haga parecer caros a todos los lunes. |
+| En qué se fue / De dónde salió | Gasto por categoría (con variación) y por cuenta. |
+| Los gastos más grandes | Los 5 mayores del período. |
+
+**Tendencias** (últimos 6 meses), en tres unidades:
+
+- **Pesos**: nominales.
+- **Pesos de hoy**: ajustados con la inflación mensual del INDEC hasta el
+  último mes publicado. Los meses todavía sin dato no se ajustan.
+- **Dólares**: cada mes al dólar promedio de ese mes (la casa elegida en
+  Ajustes). Lo gastado desde cuentas en dólares va directo.
+
+Más la tasa de ahorro mes a mes, tu **patrimonio en dólares** al cierre de
+cada mes y **tus dólares**: a cuánto los compraste en promedio, cuánto valen
+hoy y si le ganaron a la inflación.
+
+Fuente de inflación y dólar histórico:
+[api.argentinadatos.com](https://argentinadatos.com). Se baja al abrir
+Reportes, como mucho cada 12 h, y queda en un caché propio del módulo para
+usar sin conexión.
 
 ## Respaldo
 
@@ -65,5 +99,6 @@ Pages → Source: **GitHub Actions**.
 | --- | --- |
 | `src/dominio/` | Reglas puras: tipos, montos, fechas, saldos, presupuestos, validación. |
 | `src/datos/` | Dexie (IndexedDB), repositorio, respaldo, cotización. |
+| `src/reportes/` | El módulo de Reportes, completo: cálculos, históricos, gráficos, pantalla, estilos y tests. |
 | `src/pantallas/`, `src/componentes/` | La interfaz. |
 | `src/pruebas/` | Tests contra el Dexie real sobre una IndexedDB en memoria. |
