@@ -74,7 +74,8 @@
 }
 .rep-hero-rotulo { font-size: 15px; font-weight: 500; color: rgb(255 255 255 / 0.85); }
 .rep-hero-valor { font-size: clamp(34px, 10vw, 46px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; margin-top: 4px; }
-.rep-hero-delta { font-size: 14px; color: rgb(255 255 255 / 0.9); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.rep-hero-delta { font-size: 14px; color: rgb(255 255 255 / 0.92); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 2px; }
+.rep-hero .rep-hero-delta .variacion { background: #FFFFFF; font-size: 13px; padding: 3px 9px; }
 .rep-hero-division { display: grid; grid-template-columns: 1fr 1fr; margin-top: 16px; }
 .rep-hero-division > div { display: grid; gap: 4px; align-content: start; min-width: 0; }
 .rep-hero-division > div + div { border-left: 1px solid rgb(255 255 255 / 0.35); padding-left: 18px; }
@@ -83,7 +84,7 @@
 
 /* ---------- Cifras sueltas ---------- */
 
-.rep-cifras { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.rep-cifras { display: grid; grid-template-columns: 1.6fr 1fr 1fr; gap: 10px; }
 .rep-cifra {
   display: grid;
   align-content: space-between;
@@ -274,4 +275,5 @@
 
 @media (max-width: 360px) {
   .rep-cifras { grid-template-columns: 1fr 1fr; }
+  .rep-cifra:first-child { grid-column: 1 / -1; }
 }

@@ -175,18 +175,19 @@ export function Barras({ datos, formato }: { datos: Barra[]; formato: (v: number
 }
 
 /**
- * Variación de un gasto: subir es malo, bajar es bueno. Lleva flecha y signo,
- * no sólo color.
+ * Variación de un gasto, dicha en palabras: "▲ 22% más", "▼ 4% menos".
+ * Gastar más es malo (rojo), menos es bueno (verde). La palabra va siempre:
+ * una flecha de color sola no dice qué subió ni si está bien.
  */
 export function Variacion({ v, invertir = false }: { v: number | null; invertir?: boolean }) {
-  if (v === null) return <span className="variacion neutra">nuevo</span>;
+  if (v === null) return <span className="variacion neutra">antes $ 0</span>;
   const pct = Math.round(v * 100);
-  if (pct === 0) return <span className="variacion neutra">= 0%</span>;
+  if (pct === 0) return <span className="variacion neutra">igual</span>;
   const sube = pct > 0;
   const malo = invertir ? !sube : sube;
   return (
     <span className={`variacion ${malo ? 'mala' : 'buena'}`}>
-      {sube ? '▲' : '▼'} {Math.abs(pct)}%
+      {sube ? '▲' : '▼'} {Math.abs(pct)}% {sube ? 'más' : 'menos'}
     </span>
   );
 }

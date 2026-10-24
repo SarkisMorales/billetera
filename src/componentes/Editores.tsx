@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Hoja } from './Hoja';
+import { montoEnVivo } from './montoEnVivo';
 import { ErrorDeValidacion, repositorio } from '../datos/repositorio';
 import { leerMonto, montoParaEditar } from '../dominio/dinero';
 import type { Categoria, Centavos, Cuenta, Moneda, TipoCategoria, TipoCuenta } from '../dominio/tipos';
@@ -14,7 +15,7 @@ function leerSaldo(texto: string): Centavos | null {
 }
 
 function saldoParaEditar(c: Centavos): string {
-  return c < 0 ? `-${montoParaEditar(-c)}` : c === 0 ? '0' : montoParaEditar(c);
+  return c < 0 ? `-${montoEnVivo(montoParaEditar(-c))}` : c === 0 ? '0' : montoEnVivo(montoParaEditar(c));
 }
 
 const TIPOS_CUENTA: { id: TipoCuenta; nombre: string }[] = [
@@ -125,7 +126,7 @@ export function EditorCuenta({
 
         <label className="campo">
           <span>{cuenta ? 'Saldo actual' : 'Saldo hoy'}</span>
-          <input inputMode="decimal" placeholder="0" value={saldoTexto} onChange={(e) => setSaldoTexto(e.target.value)} />
+          <input inputMode="decimal" placeholder="0" value={saldoTexto} onChange={(e) => setSaldoTexto(montoEnVivo(e.target.value, { negativo: true }))} />
           {cuenta && (
             <small className="ayuda">
               Si no coincide con lo real, corregilo acá. El ajuste no cuenta como gasto ni ingreso.
@@ -165,7 +166,7 @@ export function EditorCategoria({
   const [nombre, setNombre] = useState(categoria?.nombre ?? '');
   const [emoji, setEmoji] = useState(categoria?.emoji ?? (tipo === 'gasto' ? '📦' : '💰'));
   const [presupuestoTexto, setPresupuestoTexto] = useState(
-    categoria?.presupuesto ? montoParaEditar(categoria.presupuesto) : '',
+    categoria?.presupuesto ? montoEnVivo(montoParaEditar(categoria.presupuesto)) : '',
   );
   const [error, setError] = useState<string | null>(null);
 
@@ -226,7 +227,7 @@ export function EditorCategoria({
               inputMode="decimal"
               placeholder="Sin tope"
               value={presupuestoTexto}
-              onChange={(e) => setPresupuestoTexto(e.target.value)}
+              onChange={(e) => setPresupuestoTexto(montoEnVivo(e.target.value))}
             />
             <small className="ayuda">
               Revisalo cada tanto: con inflación, un tope fijo en pesos se vuelve más fácil de cumplir mes a mes.

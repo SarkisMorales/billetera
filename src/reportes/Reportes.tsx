@@ -190,7 +190,7 @@ function VistaPeriodo({ datos }: { datos: Datos }) {
             `Todavía no hay datos de ${periodo.contraQue} para comparar`
           ) : (
             <>
-              <Variacion v={variacion(actual.gastos, previo.gastos)} /> vs. {periodo.contraQue}
+              <Variacion v={variacion(actual.gastos, previo.gastos)} /> que {periodo.contraQue}
             </>
           )}
         </span>
@@ -260,7 +260,7 @@ function VistaPeriodo({ datos }: { datos: Datos }) {
           <Seccion titulo="En qué se fue">
             <Barras datos={barrasCat} formato={pesos} />
             {comparable && (
-              <p className="grafico-nota">Variación vs. {periodo.contraQue}. ▲ es que gastaste más.</p>
+              <p className="grafico-nota">Cada porcentaje compara lo que gastaste en esa categoría con {periodo.contraQue}.</p>
             )}
           </Seccion>
 
@@ -392,8 +392,8 @@ function VistaTendencias({
             <>
               {cambio !== null && ultimo && (
                 <>
-                  <strong>{nombreMes(ultimo.mes).split(' ')[0]}</strong>: <Variacion v={cambio} /> vs. el promedio de
-                  los 3 meses anteriores.{' '}
+                  En <strong>{nombreMes(ultimo.mes).split(' ')[0]!.toLowerCase()}</strong> gastaste <Variacion v={cambio} /> que
+                  el promedio de los 3 meses anteriores.{' '}
                 </>
               )}
               {notaUnidad}

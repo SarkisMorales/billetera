@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Hoja } from './Hoja';
+import { montoEnVivo } from './montoEnVivo';
 import { ErrorDeValidacion, repositorio } from '../datos/repositorio';
 import { cotizacionVigente, saldos } from '../dominio/calculos';
 import { convertir, formatearMonto, leerMonto, montoParaEditar } from '../dominio/dinero';
@@ -53,12 +54,12 @@ export function FormMovimiento({
     '';
 
   const [tipo, setTipo] = useState<TipoMovimiento>(existente?.tipo ?? 'gasto');
-  const [montoTexto, setMontoTexto] = useState(existente ? montoParaEditar(existente.monto) : '');
+  const [montoTexto, setMontoTexto] = useState(existente ? montoEnVivo(montoParaEditar(existente.monto)) : '');
   const [cuentaId, setCuentaId] = useState(cuentaInicial);
   const [categoriaId, setCategoriaId] = useState<string | null>(existente?.categoriaId ?? null);
   const [destinoId, setDestinoId] = useState<string | null>(existente?.cuentaDestinoId ?? null);
   const [montoDestinoTexto, setMontoDestinoTexto] = useState(
-    existente?.montoDestino ? montoParaEditar(existente.montoDestino) : '',
+    existente?.montoDestino ? montoEnVivo(montoParaEditar(existente.montoDestino)) : '',
   );
   const [fecha, setFecha] = useState(existente?.fecha ?? hoy());
   const [nota, setNota] = useState(existente?.nota ?? '');
@@ -168,7 +169,7 @@ export function FormMovimiento({
             enterKeyHint="done"
             placeholder="0"
             value={montoTexto}
-            onChange={(e) => setMontoTexto(e.target.value)}
+            onChange={(e) => setMontoTexto(montoEnVivo(e.target.value))}
             // Ancho según lo escrito (la fuente es monoespaciada): el signo
             // queda pegado al número en vez de flotar en el borde.
             style={{ width: `${Math.max(1, montoTexto.length) + 0.5}ch` }}
@@ -226,7 +227,7 @@ export function FormMovimiento({
                   inputMode="decimal"
                   placeholder={sugerenciaDestino ? `≈ ${sugerenciaDestino}` : '0'}
                   value={montoDestinoTexto}
-                  onChange={(e) => setMontoDestinoTexto(e.target.value)}
+                  onChange={(e) => setMontoDestinoTexto(montoEnVivo(e.target.value))}
                 />
                 {cambioImplicito && (
                   <small className="ayuda num">
