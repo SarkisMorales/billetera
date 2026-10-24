@@ -19,7 +19,7 @@ teléfono: no hay servidor, cuenta ni login.
 | Inicio | Patrimonio total en pesos y dólares (con un ojito para ocultar los montos), lo que entró y gastaste en el mes, saldo por cuenta, gasto por categoría con presupuesto y proyección a fin de mes. |
 | Movimientos | Mes por mes, agrupado por día, con buscador y filtro por cuenta y categoría. Tocás uno para editarlo o borrarlo. |
 | Reportes | Cruza cuentas, categorías, movimientos, dólar e inflación. Ver abajo. |
-| Ajustes | Dólar de referencia, cuentas, categorías y presupuestos, respaldo, tema. |
+| Ajustes | Dólar de referencia, cuentas, categorías y presupuestos, Archivos y Transferencias, tema. |
 
 El botón **+** carga un gasto, un ingreso o una transferencia. Recuerda la
 última cuenta usada.
@@ -73,13 +73,27 @@ Fuente de inflación y dólar histórico:
 Reportes, como mucho cada 12 h, y queda en un caché propio del módulo para
 usar sin conexión.
 
-## Respaldo
+## Archivos y Transferencias
 
-Ajustes → **Guardar respaldo** abre la hoja de Compartir: elegí "Guardar en
-Archivos" → iCloud Drive. La app te recuerda si pasa una semana sin backup.
-**Importar** hace merge por id: gana la versión editada más recientemente,
-así que importar dos veces o importar un backup viejo no duplica ni pisa
-nada.
+En Ajustes. Un archivo con **toda** la billetera: movimientos, cuentas,
+categorías, presupuestos y ajustes.
+
+- **Guardar archivo**: un toque. En el iPhone abre Compartir → "Guardar en
+  Archivos" → iCloud Drive. La app te recuerda si pasa una semana sin
+  guardar.
+- **Cargar archivo** en una billetera **vacía** (recién instalada): carga
+  todo directo y queda **idéntica** a la del archivo, con las mismas cuentas
+  y categorías (las de ejemplo se reemplazan, no se duplican).
+- **Cargar archivo** en una billetera **con movimientos**: muestra qué trae
+  el archivo y pregunta:
+  - **Reemplazar todo**: queda idéntica al archivo; lo de antes se borra.
+  - **Sumar lo nuevo**: merge por id, gana la versión editada más
+    recientemente. Para recuperar un archivo de esta misma billetera.
+- Un archivo dañado o de otra app se rechaza entero: no se carga nada a
+  medias.
+
+Para pasar la billetera a otro teléfono: Guardar archivo en el viejo →
+abrir la Billetera en el nuevo → Ajustes → Cargar archivo.
 
 ## Desarrollo
 

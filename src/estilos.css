@@ -642,6 +642,29 @@ div.barra { cursor: default; }
 .ayuda { font-size: 13px; color: var(--texto-suave); margin: 0; }
 .error { color: var(--rojo); margin: 0; font-weight: 600; }
 
+/* ---------- Archivos y Transferencias ---------- */
+
+.tarjeta-opcion {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  background: var(--superficie);
+  border: 1px solid var(--borde-tarjeta);
+  border-radius: var(--r);
+  box-shadow: var(--sombra);
+}
+.tarjeta-opcion-texto { display: grid; gap: 4px; }
+.tarjeta-opcion h3 { font-size: 16px; font-weight: 700; }
+
+.archivo-resumen {
+  display: grid;
+  gap: 2px;
+  padding: 14px 16px;
+  background: var(--acento-suave);
+  border-radius: var(--r-chico);
+}
+.archivo-nombre { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 /* ---------- Aviso flotante ---------- */
 
 .aviso {
@@ -664,3 +687,5 @@ div.barra { cursor: default; }
   animation: aparecer .15s ease-out;
 }
 .aviso .btn-texto { color: var(--fondo); text-decoration: underline; }
+/* Con una hoja abierta, el aviso taparía sus botones. */
+body.con-hoja .aviso { display: none; }

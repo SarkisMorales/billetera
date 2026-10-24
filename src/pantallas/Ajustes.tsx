@@ -1,10 +1,10 @@
-import { useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
+import { ArchivosTransferencias } from '../componentes/ArchivosTransferencias';
 import { colorCategoria } from '../componentes/colores';
 import { EditorCategoria, EditorCuenta } from '../componentes/Editores';
-import { guardarRespaldo } from '../datos/backup';
 import { actualizarCotizaciones } from '../datos/cotizacion';
 import { repositorio } from '../datos/repositorio';
-import { borrarTodo, importar } from '../datos/respaldo';
+import { borrarTodo } from '../datos/respaldo';
 import { saldos } from '../dominio/calculos';
 import { formatearMonto } from '../dominio/dinero';
 import { NOMBRE_CASA, type Categoria, type Cuenta, type Tema, type TipoCategoria } from '../dominio/tipos';
@@ -37,7 +37,6 @@ export function Ajustes({
   const [editando, setEditando] = useState<Editando>(null);
   const [bajando, setBajando] = useState(false);
   const [manualTexto, setManualTexto] = useState(ajustes.cotizacionManual?.toString() ?? '');
-  const archivo = useRef<HTMLInputElement>(null);
   const s = useMemo(() => saldos(cuentas, movimientos), [cuentas, movimientos]);
 
   const usos = useMemo(() => {
@@ -60,22 +59,6 @@ export function Ajustes({
     const valor = Number(manualTexto.replace(/\./g, '').replace(',', '.'));
     await repositorio.guardarAjustes({ cotizacionManual: manualTexto.trim() && valor > 0 ? valor : null });
     avisar(manualTexto.trim() ? 'Cotización manual guardada' : 'Se usa la cotización de internet');
-  }
-
-  async function respaldar() {
-    if (await guardarRespaldo()) avisar('Respaldo guardado');
-  }
-
-  async function alElegirArchivo(ev: React.ChangeEvent<HTMLInputElement>) {
-    const f = ev.target.files?.[0];
-    ev.target.value = '';
-    if (!f) return;
-    try {
-      const r = await importar(JSON.parse(await f.text()));
-      avisar(`Importado: ${r.nuevos} nuevos, ${r.actualizados} actualizados`);
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'No se pudo leer el archivo.');
-    }
   }
 
   async function borrar() {
@@ -208,23 +191,11 @@ export function Ajustes({
         </section>
       ))}
 
-      <section className="bloque">
-        <h2 className="bloque-titulo">Respaldo</h2>
-        <p className="ayuda">
-          Tus datos viven sólo en este teléfono. Guardá el respaldo en iCloud Drive (Compartir → Guardar en
-          Archivos) una vez por semana.{' '}
-          {ajustes.ultimoBackup ? `Último: ${fechaHora(ajustes.ultimoBackup)}.` : 'Todavía no hiciste ninguno.'}
-        </p>
-        <div className="botones">
-          <button type="button" className="btn principal" onClick={respaldar}>
-            Guardar respaldo
-          </button>
-          <button type="button" className="btn" onClick={() => archivo.current?.click()}>
-            Importar
-          </button>
-          <input ref={archivo} type="file" accept="application/json,.json" hidden onChange={alElegirArchivo} />
-        </div>
-      </section>
+      <ArchivosTransferencias
+        ultimoGuardado={ajustes.ultimoBackup}
+        movimientosAhora={movimientos.length}
+        avisar={avisar}
+      />
 
       <section className="bloque">
         <h2 className="bloque-titulo">Apariencia</h2>

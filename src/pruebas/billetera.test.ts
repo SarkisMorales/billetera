@@ -6,7 +6,7 @@ import {
   saldos,
 } from '../dominio/calculos';
 import { ErrorDeValidacion } from '../datos/repositorio';
-import { exportar, importar } from '../datos/respaldo';
+import { contarMovimientos, exportar, importar, leerArchivo, reemplazar } from '../datos/respaldo';
 import { leerRespuesta } from '../datos/cotizacion';
 import { mov, preparar } from './ayudas';
 
@@ -255,5 +255,50 @@ describe('cotización', () => {
     ]);
     expect(r).toEqual([{ casa: 'bolsa', compra: 1480, venta: 1500, fechaActualizacion: 'x' }]);
     expect(leerRespuesta({ error: true })).toEqual([]);
+  });
+});
+
+describe('pasar a otra billetera', () => {
+  async function origen() {
+    const ctx = await conCuentas();
+    await ctx.repo.crearMovimiento(mov({ cuentaId: ctx.pesos.id, categoriaId: ctx.super_.id, monto: 1_500_00 }));
+    const borrado = await ctx.repo.crearMovimiento(mov({ cuentaId: ctx.pesos.id, categoriaId: ctx.super_.id }));
+    await ctx.repo.borrarMovimiento(borrado.id);
+    return ctx;
+  }
+
+  it('una billetera recién instalada queda idéntica, sin duplicar cuentas ni categorías', async () => {
+    const { db } = await origen();
+    const archivo = JSON.stringify(await exportar(db));
+
+    const nueva = preparar();
+    await nueva.repo.sembrarSiVacia(); // la de ejemplo, como al abrirla por primera vez
+    expect(await contarMovimientos(nueva.db)).toBe(0);
+
+    const r = await reemplazar(leerArchivo(archivo), nueva.db);
+    expect(r).toMatchObject({ cuentas: 3, categorias: 3, movimientos: 1 });
+
+    const a = await exportar(db);
+    const b = await exportar(nueva.db);
+    expect({ ...b, exportadoEn: '' }).toEqual({ ...a, exportadoEn: '' });
+  });
+
+  it('un archivo dañado no toca nada', async () => {
+    const { db } = await origen();
+    const datos = await exportar(db);
+    datos.movimientos[0]!.monto = 'mil' as unknown as number;
+
+    const otra = await origen();
+    const antes = await exportar(otra.db);
+    await expect(reemplazar(datos, otra.db)).rejects.toThrow(/dañado/);
+    expect({ ...(await exportar(otra.db)), exportadoEn: '' }).toEqual({ ...antes, exportadoEn: '' });
+  });
+
+  it('explica en castellano por qué no sirve un archivo', () => {
+    expect(() => leerArchivo('no es json')).toThrow(/no es de la Billetera/);
+    expect(() => leerArchivo('{"app":"otra"}')).toThrow(/no es de la Billetera/);
+    expect(() =>
+      leerArchivo(JSON.stringify({ app: 'billetera', version: 99, cuentas: [], categorias: [], movimientos: [] })),
+    ).toThrow(/versión más nueva/);
   });
 });
