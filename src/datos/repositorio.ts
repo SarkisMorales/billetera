@@ -29,7 +29,18 @@ const relojReal: Reloj = {
 };
 
 export type DatosCuenta = Pick<Cuenta, 'nombre' | 'moneda' | 'tipo' | 'saldoInicial'>;
-export type DatosCategoria = Pick<Categoria, 'nombre' | 'tipo' | 'emoji' | 'presupuesto'>;
+export type DatosCategoria = Pick<Categoria, 'nombre' | 'tipo' | 'emoji' | 'presupuesto'> &
+  Partial<Pick<Categoria, 'presupuestoDesde' | 'presupuestoHasta'>>;
+
+/** Fechas del tope: las dos o ninguna, y "desde" no puede ser después de "hasta". */
+function validarPeriodo(desde: string | null | undefined, hasta: string | null | undefined) {
+  if (!desde && !hasta) return;
+  const fecha = /^\d{4}-\d{2}-\d{2}$/;
+  if (!desde || !hasta || !fecha.test(desde) || !fecha.test(hasta)) {
+    throw new ErrorDeValidacion('Elegí desde qué día y hasta qué día vale el tope.');
+  }
+  if (desde > hasta) throw new ErrorDeValidacion('El tope no puede terminar antes de empezar.');
+}
 
 export class Repositorio {
   constructor(
@@ -102,11 +113,15 @@ export class Repositorio {
   async crearCategoria(datos: DatosCategoria): Promise<Categoria> {
     const nombre = datos.nombre.trim();
     if (!nombre) throw new ErrorDeValidacion('La categoría necesita un nombre.');
+    validarPeriodo(datos.presupuestoDesde, datos.presupuestoHasta);
     const ahora = this.reloj.ahora();
+    const conTope = datos.tipo === 'gasto' && datos.presupuesto !== null;
     const categoria: Categoria = {
       ...datos,
       nombre,
       presupuesto: datos.tipo === 'gasto' ? datos.presupuesto : null,
+      presupuestoDesde: conTope ? (datos.presupuestoDesde ?? null) : null,
+      presupuestoHasta: conTope ? (datos.presupuestoHasta ?? null) : null,
       id: this.reloj.id(),
       archivada: false,
       orden: await this.db.categorias.count(),
@@ -126,9 +141,15 @@ export class Repositorio {
     if (cambios.nombre !== undefined && !cambios.nombre.trim()) {
       throw new ErrorDeValidacion('La categoría necesita un nombre.');
     }
+    if ('presupuestoDesde' in cambios || 'presupuestoHasta' in cambios) {
+      validarPeriodo(cambios.presupuestoDesde, cambios.presupuestoHasta);
+    }
+    // Sin tope no hay fechas de tope.
+    const sinTope = cambios.presupuesto === null;
     await this.db.categorias.put({
       ...categoria,
       ...cambios,
+      ...(sinTope ? { presupuestoDesde: null, presupuestoHasta: null } : {}),
       nombre: (cambios.nombre ?? categoria.nombre).trim(),
       actualizadoEn: this.reloj.ahora(),
     });

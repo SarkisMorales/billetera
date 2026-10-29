@@ -28,8 +28,15 @@ export interface Categoria {
   nombre: string;
   tipo: TipoCategoria;
   emoji: string;
-  /** Tope mensual en pesos. Sólo tiene sentido en categorías de gasto. */
+  /** Tope en pesos. Sólo tiene sentido en categorías de gasto. */
   presupuesto: Centavos | null;
+  /**
+   * Si están las dos, el tope vale entre esas fechas (inclusive, `AAAA-MM-DD`)
+   * en vez de por mes calendario: "$ 50.000 en comida del 29/10 al 31/10".
+   * Opcionales: las categorías y archivos viejos no las tienen y son mensuales.
+   */
+  presupuestoDesde?: string | null;
+  presupuestoHasta?: string | null;
   archivada: boolean;
   orden: number;
   creadoEn: string;

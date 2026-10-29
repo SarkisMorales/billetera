@@ -1,5 +1,5 @@
 import { convertir } from './dinero';
-import { diasDelMes, mesDe } from './fechas';
+import { diasDelMes, diasIncluidos, mesDe } from './fechas';
 import type { Ajustes, Categoria, Centavos, Cuenta, Movimiento } from './tipos';
 
 /**
@@ -129,24 +129,72 @@ export interface EstadoPresupuesto {
   tope: Centavos;
   proporcion: number;
   nivel: NivelPresupuesto;
+  /** Sólo en los topes entre fechas. */
+  periodo?: { desde: string; hasta: string; diasRestantes: number };
+}
+
+/** Si el tope de la categoría es entre fechas y no mensual. */
+export function tienePeriodo(c: Categoria): boolean {
+  return Boolean(c.presupuestoDesde && c.presupuestoHasta);
+}
+
+function nivelDe(proporcion: number): NivelPresupuesto {
+  return proporcion > 1 ? 'pasado' : proporcion >= UMBRAL_CERCA ? 'cerca' : 'ok';
 }
 
 /** Desde qué proporción del tope se avisa. */
 export const UMBRAL_CERCA = 0.8;
 
+/** Los topes mensuales, contra lo gastado en el mes del resumen. */
 export function estadoPresupuestos(
   categorias: Categoria[],
   resumen: ResumenMes,
 ): EstadoPresupuesto[] {
   return categorias
-    .filter((c) => c.tipo === 'gasto' && !c.archivada && c.presupuesto && c.presupuesto > 0)
+    .filter((c) => c.tipo === 'gasto' && !c.archivada && c.presupuesto && c.presupuesto > 0 && !tienePeriodo(c))
     .map((categoria) => {
       const tope = categoria.presupuesto!;
       const gastado = resumen.porCategoria.get(categoria.id) ?? 0;
       const proporcion = gastado / tope;
-      const nivel: NivelPresupuesto =
-        proporcion > 1 ? 'pasado' : proporcion >= UMBRAL_CERCA ? 'cerca' : 'ok';
-      return { categoria, gastado, tope, proporcion, nivel };
+      return { categoria, gastado, tope, proporcion, nivel: nivelDe(proporcion) };
+    });
+}
+
+/**
+ * Los topes entre fechas que están corriendo hoy, contra lo gastado en esa
+ * categoría dentro de esas fechas (aunque crucen de un mes a otro). Los que
+ * todavía no empezaron o ya terminaron no aparecen.
+ */
+export function estadoPresupuestosPorFechas(
+  categorias: Categoria[],
+  movimientos: Movimiento[],
+  cuentas: Cuenta[],
+  pesosPorDolar: number | null,
+  hoyStr: string,
+): EstadoPresupuesto[] {
+  const porId = new Map(cuentas.map((c) => [c.id, c]));
+  return categorias
+    .filter((c) => c.tipo === 'gasto' && !c.archivada && c.presupuesto && c.presupuesto > 0 && tienePeriodo(c))
+    .filter((c) => c.presupuestoDesde! <= hoyStr && hoyStr <= c.presupuestoHasta!)
+    .map((categoria) => {
+      const desde = categoria.presupuestoDesde!;
+      const hasta = categoria.presupuestoHasta!;
+      let gastado = 0;
+      for (const m of vivos(movimientos)) {
+        if (m.tipo === 'gasto' && m.categoriaId === categoria.id && m.fecha >= desde && m.fecha <= hasta) {
+          gastado += enPesos(m, porId, pesosPorDolar);
+        }
+      }
+      const tope = categoria.presupuesto!;
+      const proporcion = gastado / tope;
+      return {
+        categoria,
+        gastado,
+        tope,
+        proporcion,
+        nivel: nivelDe(proporcion),
+        periodo: { desde, hasta, diasRestantes: diasIncluidos(hoyStr, hasta) },
+      };
     });
 }
 

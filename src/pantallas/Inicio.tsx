@@ -2,12 +2,13 @@ import { useMemo, useState } from 'react';
 import {
   cotizacionVigente,
   estadoPresupuestos,
+  estadoPresupuestosPorFechas,
   patrimonio,
   resumenMes,
   saldos,
 } from '../dominio/calculos';
 import { formatearMonto } from '../dominio/dinero';
-import { diasEntre, hoy, mesDe, nombreMes } from '../dominio/fechas';
+import { diasEntre, diaYMes, hoy, mesDe, nombreMes } from '../dominio/fechas';
 import { TarjetaInflacion } from '../inflacion/TarjetaInflacion';
 import { NOMBRE_CASA, type Cuenta } from '../dominio/tipos';
 import type { Billetera } from '../estado/useBilletera';
@@ -72,15 +73,25 @@ export function Inicio({
     () => resumenMes(mes, movimientos, cuentas, cotizacion),
     [mes, movimientos, cuentas, cotizacion],
   );
-  const presupuestos = estadoPresupuestos(categorias, resumen);
-
-  const porCategoria = categorias
-    .filter((c) => c.tipo === 'gasto')
-    .map((c) => ({ categoria: c, gastado: resumen.porCategoria.get(c.id) ?? 0 }))
-    .filter((x) => x.gastado > 0)
-    .sort((a, b) => b.gastado - a.gastado);
-  const mayor = porCategoria[0]?.gastado ?? 1;
+  // Topes mensuales contra el mes, y topes entre fechas contra sus fechas.
+  const presupuestos = [
+    ...estadoPresupuestos(categorias, resumen),
+    ...estadoPresupuestosPorFechas(categorias, movimientos, cuentas, cotizacion, hoyStr),
+  ];
   const conPresupuesto = new Map(presupuestos.map((e) => [e.categoria.id, e]));
+
+  // Una fila por categoría con gasto este mes o con un tope corriendo. Con
+  // tope entre fechas, lo que se muestra es lo gastado en esas fechas.
+  const filas = categorias
+    .filter((c) => c.tipo === 'gasto')
+    .map((c) => {
+      const pres = conPresupuesto.get(c.id);
+      const delMes = resumen.porCategoria.get(c.id) ?? 0;
+      return { categoria: c, pres, gastado: pres?.periodo ? pres.gastado : delMes };
+    })
+    .filter((x) => x.gastado > 0 || x.pres)
+    .sort((a, b) => b.gastado - a.gastado);
+  const mayor = Math.max(...filas.filter((f) => !f.pres).map((f) => f.gastado), 1);
 
   const casa = ajustes.cotizacionManual ? 'manual' : NOMBRE_CASA[ajustes.casa];
   const visibles = cuentas.filter((c) => !c.archivada);
@@ -173,64 +184,46 @@ export function Inicio({
         </div>
 
 
-        {porCategoria.length === 0 && presupuestos.length === 0 ? (
+        {filas.length === 0 ? (
           <p className="vacio">Todavía no cargaste gastos este mes. Tocá + para el primero.</p>
         ) : (
           <ul className="barras">
-            {porCategoria.map(({ categoria, gastado }) => {
-              const pres = conPresupuesto.get(categoria.id);
-              return (
-                <li key={categoria.id}>
-                  <button type="button" className="barra" onClick={() => irAMovimientos(categoria.id)}>
-                    <span className="barra-texto">
-                      <span>
-                        {categoria.emoji} {categoria.nombre}
-                      </span>
-                      <span className="num">
-                        {formatearMonto(gastado, 'ARS', { sinDecimales: true })}
-                        {pres && (
-                          <span className="suave"> / {formatearMonto(pres.tope, 'ARS', { sinDecimales: true })}</span>
-                        )}
-                      </span>
+            {filas.map(({ categoria, gastado, pres }) => (
+              <li key={categoria.id}>
+                <button type="button" className="barra" onClick={() => irAMovimientos(categoria.id)}>
+                  <span className="barra-texto">
+                    <span>
+                      {categoria.emoji} {categoria.nombre}
                     </span>
-                    <span className="barra-pista" data-nivel={pres?.nivel ?? 'sin'}>
-                      <span
-                        className="barra-relleno"
-                        style={{
-                          width: `${Math.min(100, (pres ? pres.proporcion : gastado / mayor) * 100)}%`,
-                        }}
-                      />
+                    <span className="num">
+                      {formatearMonto(gastado, 'ARS', { sinDecimales: true })}
+                      {pres && (
+                        <span className="suave"> / {formatearMonto(pres.tope, 'ARS', { sinDecimales: true })}</span>
+                      )}
                     </span>
-                    {pres && pres.nivel !== 'ok' && (
-                      <span className={`barra-aviso ${pres.nivel}`}>
-                        {pres.nivel === 'pasado'
-                          ? `Te pasaste ${formatearMonto(pres.gastado - pres.tope, 'ARS', { sinDecimales: true })}`
-                          : `Quedan ${formatearMonto(pres.tope - pres.gastado, 'ARS', { sinDecimales: true })}`}
-                      </span>
-                    )}
-                  </button>
-                </li>
-              );
-            })}
-            {presupuestos
-              .filter((e) => e.gastado === 0)
-              .map((e) => (
-                <li key={e.categoria.id}>
-                  <div className="barra">
-                    <span className="barra-texto">
-                      <span>
-                        {e.categoria.emoji} {e.categoria.nombre}
-                      </span>
-                      <span className="num suave">
-                        $ 0 / {formatearMonto(e.tope, 'ARS', { sinDecimales: true })}
-                      </span>
+                  </span>
+                  <span className="barra-pista" data-nivel={pres?.nivel ?? 'sin'}>
+                    <span
+                      className="barra-relleno"
+                      style={{ width: `${Math.min(100, (pres ? pres.proporcion : gastado / mayor) * 100)}%` }}
+                    />
+                  </span>
+                  {pres?.periodo && (
+                    <span className="barra-periodo">
+                      Tope del {diaYMes(pres.periodo.desde)} al {diaYMes(pres.periodo.hasta)} ·{' '}
+                      {pres.periodo.diasRestantes === 1 ? 'hoy es el último día' : `quedan ${pres.periodo.diasRestantes} días`}
                     </span>
-                    <span className="barra-pista" data-nivel="ok">
-                      <span className="barra-relleno" style={{ width: 0 }} />
+                  )}
+                  {pres && pres.nivel !== 'ok' && (
+                    <span className={`barra-aviso ${pres.nivel}`}>
+                      {pres.nivel === 'pasado'
+                        ? `Te pasaste ${formatearMonto(pres.gastado - pres.tope, 'ARS', { sinDecimales: true })}`
+                        : `Quedan ${formatearMonto(pres.tope - pres.gastado, 'ARS', { sinDecimales: true })}`}
                     </span>
-                  </div>
-                </li>
-              ))}
+                  )}
+                </button>
+              </li>
+            ))}
           </ul>
         )}
       </section>

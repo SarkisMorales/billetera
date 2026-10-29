@@ -5,7 +5,8 @@ import { EditorCategoria, EditorCuenta } from '../componentes/Editores';
 import { actualizarCotizaciones } from '../datos/cotizacion';
 import { repositorio } from '../datos/repositorio';
 import { borrarTodo } from '../datos/respaldo';
-import { saldos } from '../dominio/calculos';
+import { saldos, tienePeriodo } from '../dominio/calculos';
+import { diaYMes, hoy } from '../dominio/fechas';
 import { formatearMonto } from '../dominio/dinero';
 import { NOMBRE_CASA, type Categoria, type Cuenta, type Tema, type TipoCategoria } from '../dominio/tipos';
 import type { Billetera } from '../estado/useBilletera';
@@ -35,6 +36,7 @@ export function Ajustes({
 }) {
   const { cuentas, categorias, movimientos, ajustes } = billetera;
   const [editando, setEditando] = useState<Editando>(null);
+  const hoyStr = hoy();
   const [bajando, setBajando] = useState(false);
   const [manualTexto, setManualTexto] = useState(ajustes.cotizacionManual?.toString() ?? '');
   const s = useMemo(() => saldos(cuentas, movimientos), [cuentas, movimientos]);
@@ -178,11 +180,23 @@ export function Ajustes({
                   </span>
                   <span className="fila-texto">
                     <span className="fila-titulo">{c.nombre}</span>
-                    {c.archivada && <span className="fila-sub">archivada</span>}
+                    {(c.archivada || (tipo === 'gasto' && c.presupuesto && tienePeriodo(c))) && (
+                      <span className="fila-sub">
+                        {c.archivada
+                          ? 'archivada'
+                          : c.presupuestoHasta! < hoyStr
+                            ? `El tope terminó el ${diaYMes(c.presupuestoHasta!)}`
+                            : c.presupuestoDesde! > hoyStr
+                              ? `Tope del ${diaYMes(c.presupuestoDesde!)} al ${diaYMes(c.presupuestoHasta!)} · todavía no empezó`
+                              : `Tope del ${diaYMes(c.presupuestoDesde!)} al ${diaYMes(c.presupuestoHasta!)}`}
+                      </span>
+                    )}
                   </span>
                   {tipo === 'gasto' && (
                     <span className="fila-monto num suave">
-                      {c.presupuesto ? `tope ${formatearMonto(c.presupuesto, 'ARS', { sinDecimales: true })}` : 'sin tope'}
+                      {c.presupuesto && !(tienePeriodo(c) && c.presupuestoHasta! < hoyStr)
+                        ? `tope ${formatearMonto(c.presupuesto, 'ARS', { sinDecimales: true })}${tienePeriodo(c) ? '' : '/mes'}`
+                        : 'sin tope'}
                     </span>
                   )}
                 </button>

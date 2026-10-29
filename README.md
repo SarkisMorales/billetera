@@ -36,6 +36,7 @@ El botón **+** carga un gasto, un ingreso o una transferencia. Recuerda la
 | Corregir el saldo de una cuenta ajusta el saldo inicial | El ajuste no aparece como gasto ni ingreso y no ensucia el mes. |
 | Borrar un movimiento lo marca como borrado | Así importar un backup viejo no lo revive. |
 | Presupuesto: ámbar al 80%, rojo al pasarte | Los topes están en pesos: con inflación conviene revisarlos cada tanto. |
+| Tope **por mes** o **entre fechas** (por categoría) | Entre fechas cuenta sólo lo gastado en esa categoría en ese período, aunque cruce de mes ("$ 50.000 en comida del 29/10 al 31/10"). Antes de empezar y después de terminar no aparece; al terminar, la categoría queda sin tope. |
 
 Cotización: [dolarapi.com](https://dolarapi.com), se actualiza como mucho
 una vez por hora, al abrir la app o al volver la señal.

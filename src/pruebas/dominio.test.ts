@@ -1,5 +1,5 @@
 import { convertir, formatearMonto, leerMonto, montoParaEditar } from '../dominio/dinero';
-import { diasDelMes, nombreDia, nombreMes, sumarMeses } from '../dominio/fechas';
+import { diaYMes, diasDelMes, diasIncluidos, nombreDia, nombreMes, sumarDias, sumarMeses } from '../dominio/fechas';
 import { proyeccionGasto, type ResumenMes } from '../dominio/calculos';
 
 describe('leerMonto', () => {
@@ -56,6 +56,14 @@ describe('fechas', () => {
     expect(sumarMeses('2026-12', 1)).toBe('2027-01');
     expect(diasDelMes('2028-02')).toBe(29);
     expect(nombreMes('2026-10')).toBe('Octubre 2026');
+  });
+
+  it('días', () => {
+    expect(sumarDias('2026-10-30', 2)).toBe('2026-11-01');
+    expect(sumarDias('2026-03-01', -1)).toBe('2026-02-28');
+    expect(diasIncluidos('2026-10-29', '2026-10-31')).toBe(3);
+    expect(diasIncluidos('2026-10-31', '2026-10-31')).toBe(1);
+    expect(diaYMes('2026-03-07')).toBe('7/3');
   });
 
   it('nombreDia', () => {

@@ -305,7 +305,7 @@ button, input, select, textarea { font: inherit; color: inherit; font-size: 16px
   line-height: 1.15;
   margin-top: 6px;
 }
-.total-sub { color: rgb(255 255 255 / 0.85); font-size: 15px; font-weight: 500; min-height: 1.4em; }
+.total-sub { color: rgb(255 255 255 / 0.95); font-size: 24px; font-weight: 700; letter-spacing: -0.02em; min-height: 1.3em; line-height: 1.3; }
 .total-division {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -407,6 +407,7 @@ div.barra { cursor: default; }
 .barra-pista[data-nivel='cerca'] .barra-relleno { background: var(--ambar); }
 .barra-pista[data-nivel='pasado'] .barra-relleno { background: var(--rojo); }
 .barra-aviso { font-size: 13px; font-weight: 600; }
+.barra-periodo { font-size: 13px; color: var(--texto-suave); font-weight: 500; }
 .barra-aviso.cerca { color: var(--ambar); }
 .barra-aviso.pasado { color: var(--rojo); }
 

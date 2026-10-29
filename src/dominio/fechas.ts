@@ -46,6 +46,24 @@ export function nombreDia(fecha: string, referencia: string = hoy()): string {
   return `${DIAS[dia.getDay()]} ${d}`;
 }
 
+/** `AAAA-MM-DD` sumándole n días (n puede ser negativo). */
+export function sumarDias(fecha: string, n: number): string {
+  const [a, m, d] = fecha.split('-').map(Number) as [number, number, number];
+  return hoy(new Date(a, m - 1, d + n));
+}
+
+/** Días de `desde` a `hasta`, contando los dos: del 29 al 31 son 3. */
+export function diasIncluidos(desde: string, hasta: string): number {
+  const [a1, m1, d1] = desde.split('-').map(Number) as [number, number, number];
+  const [a2, m2, d2] = hasta.split('-').map(Number) as [number, number, number];
+  return Math.round((new Date(a2, m2 - 1, d2).getTime() - new Date(a1, m1 - 1, d1).getTime()) / 86_400_000) + 1;
+}
+
+/** "29/10". */
+export function diaYMes(fecha: string): string {
+  return `${Number(fecha.slice(8, 10))}/${Number(fecha.slice(5, 7))}`;
+}
+
 export function diasEntre(desdeIso: string, hastaIso: string): number {
   return Math.floor((Date.parse(hastaIso) - Date.parse(desdeIso)) / 86_400_000);
 }

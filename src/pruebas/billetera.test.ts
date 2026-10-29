@@ -1,6 +1,7 @@
 import {
   cotizacionVigente,
   estadoPresupuestos,
+  estadoPresupuestosPorFechas,
   patrimonio,
   resumenMes,
   saldos,
@@ -300,5 +301,77 @@ describe('pasar a otra billetera', () => {
     expect(() =>
       leerArchivo(JSON.stringify({ app: 'billetera', version: 99, cuentas: [], categorias: [], movimientos: [] })),
     ).toThrow(/versión más nueva/);
+  });
+});
+
+describe('presupuesto entre fechas', () => {
+  async function conTopeDeTresDias() {
+    const ctx = await conCuentas();
+    const comida = await ctx.repo.crearCategoria({
+      nombre: 'Comida',
+      tipo: 'gasto',
+      emoji: '🍔',
+      presupuesto: 50_000_00,
+      presupuestoDesde: '2026-10-30',
+      presupuestoHasta: '2026-11-01',
+    });
+    const gasto = (fecha: string, monto: number) =>
+      ctx.repo.crearMovimiento(mov({ cuentaId: ctx.pesos.id, categoriaId: comida.id, fecha, monto }));
+    await gasto('2026-10-29', 99_000_00); // el día antes: no cuenta
+    await gasto('2026-10-30', 20_000_00);
+    await gasto('2026-11-01', 22_000_00); // cruza de mes: cuenta igual
+    await gasto('2026-11-02', 99_000_00); // el día después: no cuenta
+    const { cuentas, categorias, movimientos, ajustes } = await todo(ctx);
+    const estado = (hoy: string) =>
+      estadoPresupuestosPorFechas(categorias, movimientos, cuentas, cotizacionVigente(ajustes), hoy);
+    return { ctx, comida, categorias, estado };
+  }
+
+  it('cuenta sólo lo gastado entre esas fechas, aunque cruce de mes', async () => {
+    const { estado } = await conTopeDeTresDias();
+    const [e] = estado('2026-10-31');
+    expect(e).toMatchObject({
+      gastado: 42_000_00,
+      tope: 50_000_00,
+      nivel: 'cerca', // 84%
+      periodo: { desde: '2026-10-30', hasta: '2026-11-01', diasRestantes: 2 },
+    });
+  });
+
+  it('no aparece antes de empezar ni después de terminar', async () => {
+    const { estado } = await conTopeDeTresDias();
+    expect(estado('2026-10-29')).toEqual([]);
+    expect(estado('2026-11-01')[0]!.periodo!.diasRestantes).toBe(1);
+    expect(estado('2026-11-02')).toEqual([]);
+  });
+
+  it('no se mezcla con los topes mensuales', async () => {
+    const { ctx, comida, categorias } = await conTopeDeTresDias();
+    const { cuentas, movimientos, ajustes } = await todo(ctx);
+    const mensuales = estadoPresupuestos(categorias, resumenMes('2026-10', movimientos, cuentas, cotizacionVigente(ajustes)));
+    expect(mensuales.map((e) => e.categoria.id)).not.toContain(comida.id);
+    expect(mensuales.map((e) => e.categoria.nombre)).toEqual(['Súper', 'Salidas']);
+  });
+
+  it('valida las fechas y al sacar el tope se van las fechas', async () => {
+    const { ctx, comida } = await conTopeDeTresDias();
+    await expect(
+      ctx.repo.editarCategoria(comida.id, { presupuestoDesde: '2026-11-05', presupuestoHasta: '2026-11-01' }),
+    ).rejects.toThrow(/antes de empezar/);
+    await expect(
+      ctx.repo.editarCategoria(comida.id, { presupuestoDesde: '2026-11-05', presupuestoHasta: null }),
+    ).rejects.toThrow(/desde qué día/);
+    await ctx.repo.editarCategoria(comida.id, { presupuesto: null });
+    expect(await ctx.db.categorias.get(comida.id)).toMatchObject({
+      presupuesto: null,
+      presupuestoDesde: null,
+      presupuestoHasta: null,
+    });
+  });
+
+  it('una categoría vieja sin fechas sigue siendo mensual', async () => {
+    const ctx = await conCuentas();
+    const { categorias } = await todo(ctx);
+    expect(categorias.find((c) => c.nombre === 'Súper')!.presupuestoDesde ?? null).toBeNull();
   });
 });

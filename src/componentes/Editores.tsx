@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { Hoja } from './Hoja';
 import { montoEnVivo } from './montoEnVivo';
 import { ErrorDeValidacion, repositorio } from '../datos/repositorio';
+import { tienePeriodo } from '../dominio/calculos';
 import { leerMonto, montoParaEditar } from '../dominio/dinero';
+import { diaYMes, diasIncluidos, hoy, sumarDias } from '../dominio/fechas';
 import type { Categoria, Centavos, Cuenta, Moneda, TipoCategoria, TipoCuenta } from '../dominio/tipos';
 
 /** Como `leerMonto`, pero acepta cero y negativos (un saldo puede serlo). */
@@ -168,7 +170,18 @@ export function EditorCategoria({
   const [presupuestoTexto, setPresupuestoTexto] = useState(
     categoria?.presupuesto ? montoEnVivo(montoParaEditar(categoria.presupuesto)) : '',
   );
+  const hoyStr = hoy();
+  const [porFechas, setPorFechas] = useState(categoria ? tienePeriodo(categoria) : false);
+  const [desde, setDesde] = useState(categoria?.presupuestoDesde ?? hoyStr);
+  const [hasta, setHasta] = useState(categoria?.presupuestoHasta ?? sumarDias(hoyStr, 2));
   const [error, setError] = useState<string | null>(null);
+
+  /** Atajo: desde hoy, n días contando hoy. */
+  function proximosDias(n: number) {
+    setDesde(hoyStr);
+    setHasta(sumarDias(hoyStr, n - 1));
+  }
+  const dias = desde && hasta && desde <= hasta ? diasIncluidos(desde, hasta) : null;
 
   async function guardar(ev: React.FormEvent) {
     ev.preventDefault();
@@ -177,13 +190,21 @@ export function EditorCategoria({
       setError('El presupuesto no es un número válido.');
       return;
     }
+    if (porFechas && presupuesto === null) {
+      setError('Poné el monto del tope para esas fechas.');
+      return;
+    }
+    const periodo =
+      porFechas && presupuesto !== null
+        ? { presupuestoDesde: desde, presupuestoHasta: hasta }
+        : { presupuestoDesde: null, presupuestoHasta: null };
     // Un emoji puede ocupar varios "caracteres": nos quedamos con el primer grafema.
     const primero = [...new Intl.Segmenter().segment(emoji.trim())][0]?.segment ?? '•';
     try {
       if (categoria) {
-        await repositorio.editarCategoria(categoria.id, { nombre, emoji: primero, presupuesto });
+        await repositorio.editarCategoria(categoria.id, { nombre, emoji: primero, presupuesto, ...periodo });
       } else {
-        await repositorio.crearCategoria({ nombre, tipo, emoji: primero, presupuesto });
+        await repositorio.crearCategoria({ nombre, tipo, emoji: primero, presupuesto, ...periodo });
       }
       alCerrar();
     } catch (e) {
@@ -221,18 +242,65 @@ export function EditorCategoria({
         </div>
 
         {tipo === 'gasto' && (
-          <label className="campo">
-            <span>Presupuesto mensual (pesos)</span>
-            <input
-              inputMode="decimal"
-              placeholder="Sin tope"
-              value={presupuestoTexto}
-              onChange={(e) => setPresupuestoTexto(montoEnVivo(e.target.value))}
-            />
-            <small className="ayuda">
-              Revisalo cada tanto: con inflación, un tope fijo en pesos se vuelve más fácil de cumplir mes a mes.
-            </small>
-          </label>
+          <fieldset className="grupo">
+            <legend>Tope de gasto</legend>
+            <div className="segmentado" role="radiogroup" aria-label="Período del tope">
+              <button type="button" role="radio" aria-checked={!porFechas} onClick={() => setPorFechas(false)}>
+                Por mes
+              </button>
+              <button type="button" role="radio" aria-checked={porFechas} onClick={() => setPorFechas(true)}>
+                Entre fechas
+              </button>
+            </div>
+
+            <label className="campo">
+              <span>{porFechas ? 'Tope para esas fechas (pesos)' : 'Tope por mes (pesos)'}</span>
+              <input
+                inputMode="decimal"
+                placeholder="Sin tope"
+                value={presupuestoTexto}
+                onChange={(e) => setPresupuestoTexto(montoEnVivo(e.target.value))}
+              />
+            </label>
+
+            {porFechas ? (
+              <>
+                <div className="fichas">
+                  {[3, 7, 15].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      className="ficha"
+                      aria-pressed={desde === hoyStr && hasta === sumarDias(hoyStr, n - 1)}
+                      onClick={() => proximosDias(n)}
+                    >
+                      Próximos {n} días
+                    </button>
+                  ))}
+                </div>
+                <div className="fila-campos">
+                  <label className="campo crece">
+                    <span>Desde</span>
+                    <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
+                  </label>
+                  <label className="campo crece">
+                    <span>Hasta</span>
+                    <input type="date" value={hasta} min={desde} onChange={(e) => setHasta(e.target.value)} />
+                  </label>
+                </div>
+                <small className="ayuda">
+                  {dias
+                    ? `${dias === 1 ? 'Un día' : `${dias} días`}: del ${diaYMes(desde)} al ${diaYMes(hasta)}, contando los dos. Cuenta sólo lo que gastes en esta categoría entre esas fechas. Cuando termina, la categoría vuelve a quedar sin tope.`
+                    : 'La fecha "hasta" tiene que ser igual o posterior a "desde".'}
+                </small>
+              </>
+            ) : (
+              <small className="ayuda">
+                Vale para cada mes calendario. Revisalo cada tanto: con inflación, un tope fijo en pesos se vuelve más
+                fácil de cumplir mes a mes.
+              </small>
+            )}
+          </fieldset>
         )}
 
         {error && (
