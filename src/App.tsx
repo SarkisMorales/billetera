@@ -10,14 +10,16 @@ import { useBilletera } from './estado/useBilletera';
 import { Ajustes } from './pantallas/Ajustes';
 import { Inicio } from './pantallas/Inicio';
 import { Movimientos } from './pantallas/Movimientos';
+import { Proyectos } from './proyectos';
 import { Reportes } from './reportes';
 
-type IdPantalla = 'inicio' | 'movimientos' | 'reportes' | 'ajustes';
+type IdPantalla = 'inicio' | 'movimientos' | 'reportes' | 'proyectos' | 'ajustes';
 
 const TITULO: Record<IdPantalla, string> = {
   inicio: 'Billetera',
   movimientos: 'Movimientos',
   reportes: 'Reportes',
+  proyectos: 'Proyectos',
   ajustes: 'Ajustes',
 };
 
@@ -40,6 +42,7 @@ const ICONOS: Record<IdPantalla, string> = {
   inicio: 'M3 7.5A2.5 2.5 0 0 1 5.5 5h13A2.5 2.5 0 0 1 21 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5zM16 12h2',
   movimientos: 'M4 6h16M4 12h16M4 18h10',
   reportes: 'M6 20V12M12 20V5M18 20v-6',
+  proyectos: 'M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1zM8 6H6.5A1.5 1.5 0 0 0 5 7.5v12A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5v-12A1.5 1.5 0 0 0 17.5 6H16M9 14l2 2 4-4',
   ajustes: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 14H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10 3V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 21 10h0a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z',
 };
 
@@ -178,6 +181,8 @@ export function App() {
           />
         ) : pantalla === 'reportes' ? (
           <Reportes billetera={billetera} enLinea={enLinea} />
+        ) : pantalla === 'proyectos' ? (
+          <Proyectos avisar={avisar} />
         ) : (
           <Ajustes billetera={billetera} enLinea={enLinea} avisar={avisar} />
         )}
@@ -198,7 +203,7 @@ export function App() {
       )}
 
       <nav className="barra-pestanas" aria-label="Secciones">
-        {(['inicio', 'movimientos', 'reportes', 'ajustes'] as const).map((p) => (
+        {(['inicio', 'movimientos', 'reportes', 'proyectos', 'ajustes'] as const).map((p) => (
           <button
             key={p}
             type="button"
@@ -218,7 +223,14 @@ export function App() {
         <div className="aviso" role="status">
           <span>{aviso.texto}</span>
           {aviso.deshacer && (
-            <button type="button" className="btn-texto fuerte" onClick={aviso.deshacer}>
+            <button
+              type="button"
+              className="btn-texto fuerte"
+              onClick={() => {
+                aviso.deshacer!();
+                setAviso(null);
+              }}
+            >
               Deshacer
             </button>
           )}

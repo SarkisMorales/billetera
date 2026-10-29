@@ -1,11 +1,15 @@
 import Dexie, { type EntityTable } from 'dexie';
 import type { Ajustes, Categoria, Cuenta, Movimiento } from '../dominio/tipos';
+import type { Nota, Objetivo, Proyecto } from '../proyectos/tipos';
 
 export class BilleteraDB extends Dexie {
   cuentas!: EntityTable<Cuenta, 'id'>;
   categorias!: EntityTable<Categoria, 'id'>;
   movimientos!: EntityTable<Movimiento, 'id'>;
   ajustes!: EntityTable<Ajustes, 'id'>;
+  proyectos!: EntityTable<Proyecto, 'id'>;
+  objetivos!: EntityTable<Objetivo, 'id'>;
+  notas!: EntityTable<Nota, 'id'>;
 
   constructor(nombre = 'billetera') {
     super(nombre);
@@ -16,6 +20,13 @@ export class BilleteraDB extends Dexie {
       categorias: 'id, tipo, orden',
       movimientos: 'id, fecha, cuentaId, cuentaDestinoId, categoriaId, creadoEn',
       ajustes: 'id',
+    });
+    // Versión 2: Proyectos y Notas. Sólo agrega tablas; lo de la versión 1
+    // queda como estaba.
+    this.version(2).stores({
+      proyectos: 'id, orden',
+      objetivos: 'id, proyectoId',
+      notas: 'id, proyectoId',
     });
   }
 }

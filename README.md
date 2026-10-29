@@ -12,13 +12,14 @@ teléfono: no hay servidor, cuenta ni login.
    iOS no borra los datos por inactividad (en Safari común sí puede, si no
    la abrís en una semana).
 
-## Las cuatro pantallas
+## Las cinco pantallas
 
 | Pantalla | Qué muestra |
 | --- | --- |
 | Inicio | Patrimonio total en pesos y dólares (con un ojito para ocultar los montos), lo que entró y gastaste en el mes, saldo por cuenta y gasto por categoría con presupuesto. |
 | Movimientos | Mes por mes, agrupado por día, con buscador y filtro por cuenta y categoría. Tocás uno para editarlo o borrarlo. |
 | Reportes | Cruza cuentas, categorías, movimientos, dólar e inflación, y muestra la inflación mes a mes. Ver abajo. |
+| Proyectos | Proyectos con presupuesto, objetivos y notas propias; y aparte, Notas sueltas estilo Todoist. Ver abajo. |
 | Ajustes | Dólar de referencia, cuentas, categorías y presupuestos, Archivos y Transferencias, tema. |
 
 El botón **+** carga un gasto, un ingreso o una transferencia. Recuerda la
@@ -113,6 +114,46 @@ Fuente de inflación y dólar histórico:
 Reportes, como mucho cada 12 h, y queda en un caché propio del módulo para
 usar sin conexión.
 
+## Proyectos y Notas
+
+Módulo aparte (`src/proyectos/`), en la pestaña **Proyectos**, con dos vistas
+separadas arriba: **Proyectos** y **Notas**. No toca cuentas, categorías ni
+movimientos: un proyecto no se une con los gastos reales.
+
+**Proyectos**
+
+- Tarjetas con nombre, ícono, presupuesto y barra de avance. Los
+  **terminados** se archivan abajo, plegados; no se borran.
+- Presupuesto opcional, en **pesos o dólares**. Los montos de los objetivos
+  van en la misma moneda.
+- **Objetivos**: lista con tilde y monto opcional ("Cubiertas — $ 400.000").
+  Carga rápida: texto, monto y Enter.
+- **Avance**: "3 de 5 objetivos hechos" y "$ 490.000 de $ 1.200.000 ya
+  cubiertos" (suma de los objetivos tildados). Con presupuesto, la barra
+  mide la plata cubierta; sin presupuesto, los objetivos hechos. Avisa
+  cuánto falta y si los objetivos suman más que el presupuesto.
+- **Estado**: activo, pausado o terminado.
+- **Notas del proyecto**: iguales a las sueltas, pero sólo se ven adentro
+  de ese proyecto.
+- Borrar un proyecto (para errores) se lleva sus objetivos y notas, y se
+  puede deshacer desde el aviso.
+
+**Notas** (estilo Todoist)
+
+| Qué | Cómo |
+| --- | --- |
+| Carga rápida | Escribís y Enter. `#etiqueta` la etiqueta y `!1` / `!2` le pone prioridad alta / media: "Pagar patente #auto !1". |
+| Hecha | El círculo la tilda; las hechas bajan a "Hechas", plegado. El aviso tiene Deshacer. |
+| Fecha | Opcional: Hoy, Mañana, En una semana o cualquier día. Las vencidas dicen "⚠️ Vencida", no sólo en rojo. |
+| Prioridad | Normal, media o alta: se ve en el círculo y en palabras. |
+| Fijar | 📌 arriba de todo. |
+| Detalle | Texto largo con renglones; en la lista se ve el primero. |
+| Etiquetas | Fichas arriba para filtrar. |
+| Buscador | Busca en texto, detalle y etiquetas, sin importar acentos. |
+
+Orden de las pendientes: vencidas, después prioridad, fecha (las sin fecha
+al final) y la más nueva.
+
 ## Archivos y Transferencias
 
 En Ajustes. Un archivo con **toda** la billetera: movimientos, cuentas,
@@ -131,6 +172,10 @@ categorías, presupuestos y ajustes.
     recientemente. Para recuperar un archivo de esta misma billetera.
 - Un archivo dañado o de otra app se rechaza entero: no se carga nada a
   medias.
+- Desde la versión 2 del archivo viajan también proyectos, objetivos y
+  notas. Un archivo viejo (versión 1) se sigue cargando y **no borra** los
+  proyectos ni las notas de esta billetera. Una app vieja rechaza un archivo
+  2 en vez de perder las notas sin avisar.
 
 Para pasar la billetera a otro teléfono: Guardar archivo en el viejo →
 abrir la Billetera en el nuevo → Ajustes → Cargar archivo.
@@ -154,5 +199,6 @@ Pages → Source: **GitHub Actions**.
 | `src/dominio/` | Reglas puras: tipos, montos, fechas, saldos, presupuestos, validación. |
 | `src/datos/` | Dexie (IndexedDB), repositorio, respaldo, cotización. |
 | `src/reportes/` | El módulo de Reportes, completo: cálculos, históricos, gráficos, pantalla, estilos y tests. |
+| `src/proyectos/` | Proyectos y Notas: tipos, cálculos, repositorio, pantalla, estilos y tests. Sus tablas son la versión 2 de la base. |
 | `src/pantallas/`, `src/componentes/` | La interfaz. |
 | `src/pruebas/` | Tests contra el Dexie real sobre una IndexedDB en memoria. |

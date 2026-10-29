@@ -2,8 +2,8 @@ import { useRef, useState } from 'react';
 import { Hoja } from './Hoja';
 import { guardarRespaldo } from '../datos/backup';
 import {
-  contarMovimientos,
   contenido,
+  contenidoLocal,
   importar,
   leerArchivo,
   reemplazar,
@@ -21,8 +21,31 @@ function fechaHora(iso: string): string {
   });
 }
 
+/** "12 movimientos, 3 proyectos y 1 nota": lo que es cero no se nombra (salvo que todo lo sea). */
+function enumerar(partes: [number, string, string][]): string {
+  const con = partes.filter(([n]) => n > 0).map(([n, uno, varios]) => `${n} ${n === 1 ? uno : varios}`);
+  if (!con.length) return `0 ${partes[0]![2]}`;
+  return con.length === 1 ? con[0]! : `${con.slice(0, -1).join(', ')} y ${con[con.length - 1]}`;
+}
+
 function describir(c: ContenidoArchivo): string {
-  return `${c.movimientos} movimientos, ${c.cuentas} cuentas y ${c.categorias} categorías`;
+  return enumerar([
+    [c.movimientos, 'movimiento', 'movimientos'],
+    [c.cuentas, 'cuenta', 'cuentas'],
+    [c.categorias, 'categoría', 'categorías'],
+    [c.proyectos, 'proyecto', 'proyectos'],
+    [c.notas, 'nota', 'notas'],
+  ]);
+}
+
+type Local = Awaited<ReturnType<typeof contenidoLocal>>;
+
+function describirLocal(l: Local): string {
+  return enumerar([
+    [l.movimientos, 'movimiento', 'movimientos'],
+    [l.proyectos, 'proyecto', 'proyectos'],
+    [l.notas, 'nota', 'notas'],
+  ]);
 }
 
 /**
@@ -43,7 +66,7 @@ export function ArchivosTransferencias({
   avisar: (texto: string) => void;
 }) {
   const entrada = useRef<HTMLInputElement>(null);
-  const [pendiente, setPendiente] = useState<{ respaldo: Respaldo; nombre: string; hay: number } | null>(null);
+  const [pendiente, setPendiente] = useState<{ respaldo: Respaldo; nombre: string; hay: Local } | null>(null);
   const [trabajando, setTrabajando] = useState(false);
 
   async function guardar() {
@@ -61,8 +84,8 @@ export function ArchivosTransferencias({
       alert(e instanceof Error ? e.message : 'No se pudo leer el archivo.');
       return;
     }
-    const hay = await contarMovimientos();
-    if (hay === 0) {
+    const hay = await contenidoLocal();
+    if (hay.movimientos + hay.proyectos + hay.notas === 0) {
       // Billetera vacía: no hay nada que perder, se carga directo.
       const c = await reemplazar(respaldo);
       avisar(`Listo: se cargaron ${describir(c)}`);
@@ -73,8 +96,13 @@ export function ArchivosTransferencias({
 
   async function reemplazarTodo() {
     if (!pendiente) return;
+    // Un archivo viejo no trae proyectos ni notas: esos se quedan.
+    const traeProyectos = pendiente.respaldo.proyectos !== undefined;
+    const seBorra = traeProyectos ? pendiente.hay : { ...pendiente.hay, proyectos: 0, notas: 0 };
     const ok = confirm(
-      `Se borran los ${pendiente.hay} movimientos que tiene esta billetera y queda igual a la del archivo. ¿Seguir?`,
+      `Se borra lo que tiene esta billetera (${describirLocal(seBorra)}) y queda igual a la del archivo.${
+        traeProyectos ? '' : ' Tus proyectos y notas se quedan: el archivo es de antes de que existieran.'
+      } ¿Seguir?`,
     );
     if (!ok) return;
     setTrabajando(true);
@@ -109,7 +137,8 @@ export function ArchivosTransferencias({
         <div className="tarjeta-opcion-texto">
           <h3>Guardar archivo</h3>
           <p className="ayuda">
-            Todo en un archivo: {movimientosAhora} movimientos, cuentas, categorías, presupuestos y ajustes.
+            Todo en un archivo: {movimientosAhora} movimientos, cuentas, categorías, presupuestos, proyectos, notas
+            y ajustes.
             En el iPhone elegí "Guardar en Archivos" → iCloud Drive.{' '}
             {ultimoGuardado ? `Último: ${fechaHora(ultimoGuardado)}.` : 'Todavía no guardaste ninguno.'}
           </p>
@@ -144,7 +173,7 @@ export function ArchivosTransferencias({
               <strong>{describir(c)}</strong>
             </div>
             <p className="ayuda">
-              Esta billetera ya tiene {pendiente.hay} movimientos. ¿Qué hacemos?
+              Esta billetera ya tiene {describirLocal(pendiente.hay)}. ¿Qué hacemos?
             </p>
 
             <button type="button" className="btn principal ancho" disabled={trabajando} onClick={reemplazarTodo}>

@@ -1,0 +1,243 @@
+/* Proyectos y Notas. Mismas piezas que el resto: tarjetas blancas, el azul de la app y la hoja de iOS. */
+
+.proy { gap: 22px; }
+
+.sr-solo {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.campo textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 12px 14px;
+  background: var(--superficie);
+  border: 1px solid var(--borde-tarjeta);
+  border-radius: var(--r-chico);
+  box-shadow: 0 1px 2px rgb(16 24 40 / 0.04);
+  resize: vertical;
+  line-height: 1.45;
+}
+.campo textarea:focus { outline: 2px solid var(--acento); outline-offset: -1px; border-color: transparent; }
+
+/* ---------- Notas ---------- */
+
+.notas { display: grid; gap: 12px; }
+
+/* Carga rápida: un campo y el +. Enter guarda. */
+.notas-rapida, .objetivo-nuevo { display: flex; gap: 8px; align-items: center; }
+.notas-rapida input, .objetivo-nuevo input, .notas-buscar {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 11px 14px;
+  background: var(--superficie);
+  border: 1px solid var(--borde-tarjeta);
+  border-radius: var(--r-chico);
+  box-shadow: var(--sombra);
+}
+.notas-rapida input:focus, .objetivo-nuevo input:focus, .notas-buscar:focus {
+  outline: 2px solid var(--acento);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+.notas-agregar {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 50%;
+  background: var(--degradado);
+  color: var(--sobre-acento);
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1;
+  box-shadow: var(--sombra-azul);
+  cursor: pointer;
+}
+.notas-agregar:disabled { opacity: .4; box-shadow: none; }
+
+.notas-etiquetas { display: flex; gap: 8px; overflow-x: auto; padding: 2px; scrollbar-width: none; }
+.notas-etiquetas::-webkit-scrollbar { display: none; }
+.etiqueta-ficha {
+  flex: none;
+  padding: 7px 13px;
+  border-radius: 99px;
+  border: 1.5px solid var(--borde-tarjeta);
+  background: var(--superficie);
+  color: var(--texto-suave);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.etiqueta-ficha[aria-pressed='true'] { border-color: var(--acento); background: var(--acento-suave); color: var(--acento); }
+
+.notas-grupo { display: grid; gap: 8px; }
+.notas-grupo-titulo { font-size: 14px; font-weight: 700; color: var(--texto-suave); }
+.notas-plegar {
+  justify-self: start;
+  padding: 6px 0;
+  border: none;
+  background: none;
+  color: var(--texto-suave);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.notas-lista, .objetivos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--superficie);
+  border: 1px solid var(--borde-tarjeta);
+  border-radius: var(--r);
+  box-shadow: var(--sombra);
+  overflow: hidden;
+}
+.nota, .objetivo { display: flex; align-items: flex-start; gap: 4px; padding: 4px 8px 4px 4px; }
+.nota + .nota, .objetivo + .objetivo { border-top: 1px solid var(--borde-tarjeta); }
+
+/* El círculo para tildar. El borde dice la prioridad, y la fila además lo dice en palabras. */
+.nota-tilde {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--texto-suave);
+  --anillo: var(--pista-sin-tope);
+}
+.nota-tilde svg {
+  width: 24px;
+  height: 24px;
+  padding: 3px;
+  border: 2px solid var(--anillo);
+  border-radius: 50%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 20;
+  stroke-dashoffset: 20;
+}
+.nota[data-prioridad='1'] .nota-tilde { --anillo: var(--rojo); }
+.nota[data-prioridad='2'] .nota-tilde { --anillo: var(--ambar); }
+.nota-tilde[aria-checked='true'] svg { background: var(--acento); border-color: var(--acento); color: #FFFFFF; stroke-dashoffset: 0; }
+
+.nota-cuerpo, .objetivo-cuerpo {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  padding: 11px 0 10px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.nota-texto, .objetivo-texto { font-size: 16px; font-weight: 500; overflow-wrap: anywhere; }
+.nota-detalle { font-size: 14px; color: var(--texto-suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nota-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 13px; font-weight: 600; color: var(--texto-suave); margin-top: 2px; }
+.nota-prioridad.p1 { color: var(--rojo); }
+.nota-prioridad.p2 { color: var(--ambar); }
+.nota-fecha.vencida { color: var(--rojo); }
+.nota-fecha.hoy { color: var(--verde); }
+.nota-etiqueta { color: var(--acento); font-weight: 500; }
+
+.hechas .nota-texto, .objetivo[data-hecho='true'] .objetivo-texto { text-decoration: line-through; color: var(--texto-suave); }
+
+.segmentado button[data-prioridad='1'][aria-checked='true'] { color: var(--rojo); }
+.segmentado button[data-prioridad='2'][aria-checked='true'] { color: var(--ambar); }
+
+/* ---------- Lista de proyectos ---------- */
+
+.proy-lista { display: grid; gap: 12px; }
+.proy-lista.terminados { opacity: .75; }
+.proy-vacio { display: grid; gap: 14px; }
+
+.proy-tarjeta {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  padding: 16px;
+  text-align: left;
+  background: var(--superficie);
+  border: 1px solid var(--borde-tarjeta);
+  border-radius: var(--r);
+  box-shadow: var(--sombra);
+  cursor: pointer;
+}
+.proy-tarjeta:active { background: var(--superficie-alta); }
+.proy-tarjeta-arriba { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.proy-emoji {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--acento-suave);
+  font-size: 22px;
+}
+.proy-nombre { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.proy-titulo { font-size: 17px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.proy-estado { font-size: 13px; font-weight: 600; color: var(--ambar); }
+.proy-estado.terminado { color: var(--verde); }
+.proy-presupuesto { flex: none; font-weight: 700; }
+.proy-sub { font-size: 14px; color: var(--texto-suave); }
+
+/* ---------- Detalle ---------- */
+
+.proy-volver { justify-self: start; font-weight: 600; font-size: 16px; padding: 4px 0; margin-bottom: -10px; }
+
+.proy-hero {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  padding: 20px 22px 22px;
+  border-radius: 24px;
+  background: var(--degradado);
+  color: #FFFFFF;
+  box-shadow: var(--sombra-azul);
+  overflow: hidden;
+}
+.proy-hero-arriba { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; min-width: 0; }
+.proy-hero-emoji { font-size: 26px; }
+.proy-hero-arriba h2 { flex: 1; min-width: 0; font-size: 21px; font-weight: 800; overflow-wrap: anywhere; }
+.proy-hero-editar {
+  flex: none;
+  padding: 7px 14px;
+  border: 1px solid rgb(255 255 255 / 0.4);
+  border-radius: 99px;
+  background: rgb(255 255 255 / 0.14);
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.proy-hero-estado { justify-self: start; font-size: 13px; font-weight: 700; padding: 3px 10px; border-radius: 99px; background: rgb(255 255 255 / 0.2); margin-bottom: 8px; }
+.proy-hero-rotulo { font-size: 15px; font-weight: 500; color: rgb(255 255 255 / 0.85); }
+.proy-hero-valor { font-size: clamp(30px, 9vw, 42px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; }
+.proy-hero-pista { height: 8px; margin: 12px 0 8px; border-radius: 99px; background: rgb(255 255 255 / 0.25); overflow: hidden; }
+.proy-hero-pista span { display: block; height: 100%; border-radius: 99px; background: #FFFFFF; }
+.proy-hero-sub { font-size: 15px; color: rgb(255 255 255 / 0.92); line-height: 1.45; }
+.proy-hero-falta { margin-top: 8px; font-size: 16px; font-weight: 700; }
+
+.proy-objetivos { display: grid; gap: 10px; }
+.objetivo-cuerpo { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.objetivo-monto { flex: none; font-weight: 700; }
+.objetivo[data-hecho='true'] .objetivo-monto { color: var(--texto-suave); }
+.objetivo-nuevo { flex-wrap: wrap; }
+.objetivo-nuevo input:first-child { flex: 2 1 140px; }
+.objetivo-nuevo input.num { flex: 1 1 96px; text-align: right; }
+.objetivo-nuevo .error { flex-basis: 100%; }

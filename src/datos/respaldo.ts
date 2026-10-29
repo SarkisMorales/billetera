@@ -1,8 +1,14 @@
 import type { BilleteraDB } from './db';
 import { db as dbPorDefecto } from './db';
 import type { Ajustes, Categoria, Cuenta, Movimiento } from '../dominio/tipos';
+import type { Nota, Objetivo, Proyecto } from '../proyectos/tipos';
 
-export const VERSION_RESPALDO = 1;
+/**
+ * 2: suma proyectos, objetivos y notas. Una app vieja rechaza un archivo 2
+ * en vez de cargarlo y perder las notas sin avisar. Los archivos 1 se siguen
+ * cargando.
+ */
+export const VERSION_RESPALDO = 2;
 
 export interface Respaldo {
   version: number;
@@ -12,7 +18,14 @@ export interface Respaldo {
   categorias: Categoria[];
   movimientos: Movimiento[];
   ajustes: Ajustes | null;
+  /** Desde la versión 2. Un archivo 1 no los trae: no dice nada de ellos. */
+  proyectos?: Proyecto[];
+  objetivos?: Objetivo[];
+  notas?: Nota[];
 }
+
+/** Las tablas de Proyectos y Notas, para las transacciones. */
+const tablasProyectos = (db: BilleteraDB) => [db.proyectos, db.objetivos, db.notas];
 
 export interface ResumenImportacion {
   nuevos: number;
@@ -21,11 +34,14 @@ export interface ResumenImportacion {
 }
 
 export async function exportar(db: BilleteraDB = dbPorDefecto): Promise<Respaldo> {
-  const [cuentas, categorias, movimientos, ajustes] = await Promise.all([
+  const [cuentas, categorias, movimientos, ajustes, proyectos, objetivos, notas] = await Promise.all([
     db.cuentas.toArray(),
     db.categorias.toArray(),
     db.movimientos.toArray(),
     db.ajustes.get('unico'),
+    db.proyectos.toArray(),
+    db.objetivos.toArray(),
+    db.notas.toArray(),
   ]);
   return {
     version: VERSION_RESPALDO,
@@ -35,6 +51,9 @@ export async function exportar(db: BilleteraDB = dbPorDefecto): Promise<Respaldo
     categorias,
     movimientos,
     ajustes: ajustes ?? null,
+    proyectos,
+    objetivos,
+    notas,
   };
 }
 
@@ -74,10 +93,13 @@ export async function importar(
     }
   }
 
-  await db.transaction('rw', [db.cuentas, db.categorias, db.movimientos, db.ajustes], async () => {
+  await db.transaction('rw', [db.cuentas, db.categorias, db.movimientos, db.ajustes, ...tablasProyectos(db)], async () => {
     await fusionar<Cuenta>(db.cuentas, respaldo.cuentas);
     await fusionar<Categoria>(db.categorias, respaldo.categorias);
     await fusionar<Movimiento>(db.movimientos, respaldo.movimientos);
+    await fusionar<Proyecto>(db.proyectos, respaldo.proyectos ?? []);
+    await fusionar<Objetivo>(db.objetivos, respaldo.objetivos ?? []);
+    await fusionar<Nota>(db.notas, respaldo.notas ?? []);
     if (respaldo.ajustes && !(await db.ajustes.get('unico'))) {
       await db.ajustes.put(respaldo.ajustes);
     }
@@ -111,6 +133,30 @@ function movimientoValido(m: Partial<Movimiento>): boolean {
     esTexto(m.cuentaId) && esTexto(m.actualizadoEn);
 }
 
+function proyectoValido(p: Partial<Proyecto>): boolean {
+  return esTexto(p.id) && esTexto(p.nombre) && (p.moneda === 'ARS' || p.moneda === 'USD') &&
+    (p.presupuesto === null || esEntero(p.presupuesto)) &&
+    ['activo', 'pausado', 'terminado'].includes(p.estado as string) && esTexto(p.actualizadoEn);
+}
+
+function objetivoValido(o: Partial<Objetivo>): boolean {
+  return esTexto(o.id) && esTexto(o.proyectoId) && esTexto(o.texto) && (o.monto === null || esEntero(o.monto)) &&
+    esTexto(o.actualizadoEn);
+}
+
+function notaValida(n: Partial<Nota>): boolean {
+  return esTexto(n.id) && (n.proyectoId === null || esTexto(n.proyectoId)) && esTexto(n.texto) &&
+    Array.isArray(n.etiquetas) && n.etiquetas.every(esTexto) &&
+    (n.fecha === null || (esTexto(n.fecha) && /^\d{4}-\d{2}-\d{2}$/.test(n.fecha!))) &&
+    [1, 2, 3].includes(n.prioridad as number) && esTexto(n.actualizadoEn);
+}
+
+/** Una lista opcional: si no está, undefined; si está, tiene que ser válida entera. */
+function listaOpcional<T>(x: unknown, valido: (y: Partial<T>) => boolean): T[] | undefined | false {
+  if (x === undefined) return undefined;
+  return Array.isArray(x) && x.every(valido) ? (x as T[]) : false;
+}
+
 function validarRespaldo(datos: unknown): Respaldo {
   if (typeof datos !== 'object' || datos === null) {
     throw new Error('El archivo no tiene el formato esperado.');
@@ -125,7 +171,13 @@ function validarRespaldo(datos: unknown): Respaldo {
   if (typeof r.version !== 'number' || r.version > VERSION_RESPALDO) {
     throw new Error('El archivo viene de una versión más nueva de la app. Actualizá esta billetera primero.');
   }
-  if (!r.cuentas.every(cuentaValida) || !r.categorias.every(categoriaValida) || !r.movimientos.every(movimientoValido)) {
+  const proyectos = listaOpcional<Proyecto>(r.proyectos, proyectoValido);
+  const objetivos = listaOpcional<Objetivo>(r.objetivos, objetivoValido);
+  const notas = listaOpcional<Nota>(r.notas, notaValida);
+  if (
+    !r.cuentas.every(cuentaValida) || !r.categorias.every(categoriaValida) || !r.movimientos.every(movimientoValido) ||
+    proyectos === false || objetivos === false || notas === false
+  ) {
     throw new Error('El archivo está dañado: tiene registros incompletos. No se cargó nada.');
   }
   return {
@@ -136,6 +188,10 @@ function validarRespaldo(datos: unknown): Respaldo {
     categorias: r.categorias,
     movimientos: r.movimientos,
     ajustes: r.ajustes ?? null,
+    // Las tres juntas: un archivo con proyectos sin sus objetivos no existe.
+    ...(proyectos || objetivos || notas
+      ? { proyectos: proyectos ?? [], objetivos: objetivos ?? [], notas: notas ?? [] }
+      : {}),
   };
 }
 
@@ -155,6 +211,8 @@ export interface ContenidoArchivo {
   cuentas: number;
   categorias: number;
   movimientos: number;
+  proyectos: number;
+  notas: number;
 }
 
 /** Qué trae un archivo, para mostrarlo antes de cargarlo. Los borrados no cuentan. */
@@ -164,6 +222,8 @@ export function contenido(r: Respaldo): ContenidoArchivo {
     cuentas: r.cuentas.filter((c) => !c.archivada).length,
     categorias: r.categorias.filter((c) => !c.archivada).length,
     movimientos: r.movimientos.filter((m) => !m.borrado).length,
+    proyectos: (r.proyectos ?? []).filter((p) => !p.borrado).length,
+    notas: (r.notas ?? []).filter((n) => !n.borrado).length,
   };
 }
 
@@ -172,17 +232,32 @@ export function contarMovimientos(db: BilleteraDB = dbPorDefecto): Promise<numbe
   return db.movimientos.filter((m) => !m.borrado).count();
 }
 
+/** Lo que hay en esta billetera, para saber si está vacía y avisar qué se pierde al reemplazar. */
+export async function contenidoLocal(
+  db: BilleteraDB = dbPorDefecto,
+): Promise<{ movimientos: number; proyectos: number; notas: number }> {
+  const [movimientos, proyectos, notas] = await Promise.all([
+    contarMovimientos(db),
+    db.proyectos.filter((p) => !p.borrado).count(),
+    db.notas.filter((n) => !n.borrado).count(),
+  ]);
+  return { movimientos, proyectos, notas };
+}
+
 /**
  * Deja esta billetera idéntica a la del archivo: borra todo lo que hay y
  * carga lo del archivo, con los mismos ids. Es lo que se usa para pasar la
  * billetera a otro teléfono: las cuentas y categorías de ejemplo de una
  * billetera nueva no se mezclan con las del archivo.
  *
+ * Un archivo viejo (versión 1) no trae proyectos ni notas: no dice nada de
+ * ellos, así que los de esta billetera se quedan como están.
+ *
  * Todo en una transacción: si algo falla, queda como estaba.
  */
 export async function reemplazar(datos: unknown, db: BilleteraDB = dbPorDefecto): Promise<ContenidoArchivo> {
   const r = validarRespaldo(datos);
-  await db.transaction('rw', [db.cuentas, db.categorias, db.movimientos, db.ajustes], async () => {
+  await db.transaction('rw', [db.cuentas, db.categorias, db.movimientos, db.ajustes, ...tablasProyectos(db)], async () => {
     const ajustesLocales = await db.ajustes.get('unico');
     await Promise.all([db.cuentas.clear(), db.categorias.clear(), db.movimientos.clear(), db.ajustes.clear()]);
     await db.cuentas.bulkPut(r.cuentas);
@@ -190,18 +265,27 @@ export async function reemplazar(datos: unknown, db: BilleteraDB = dbPorDefecto)
     await db.movimientos.bulkPut(r.movimientos);
     const ajustes = r.ajustes ?? ajustesLocales;
     if (ajustes) await db.ajustes.put({ ...ajustes, id: 'unico' });
+    if (r.proyectos && r.objetivos && r.notas) {
+      await Promise.all([db.proyectos.clear(), db.objetivos.clear(), db.notas.clear()]);
+      await db.proyectos.bulkPut(r.proyectos);
+      await db.objetivos.bulkPut(r.objetivos);
+      await db.notas.bulkPut(r.notas);
+    }
   });
   return contenido(r);
 }
 
 /** Borra todo. Sólo desde ajustes, con confirmación escrita. */
 export async function borrarTodo(db: BilleteraDB = dbPorDefecto): Promise<void> {
-  await db.transaction('rw', [db.cuentas, db.categorias, db.movimientos, db.ajustes], async () => {
+  await db.transaction('rw', [db.cuentas, db.categorias, db.movimientos, db.ajustes, ...tablasProyectos(db)], async () => {
     await Promise.all([
       db.cuentas.clear(),
       db.categorias.clear(),
       db.movimientos.clear(),
       db.ajustes.clear(),
+      db.proyectos.clear(),
+      db.objetivos.clear(),
+      db.notas.clear(),
     ]);
   });
 }
