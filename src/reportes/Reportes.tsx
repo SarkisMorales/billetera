@@ -4,11 +4,10 @@ import { formatearMonto } from '../dominio/dinero';
 import { hoy, nombreMes } from '../dominio/fechas';
 import { NOMBRE_CASA, type Centavos, type Moneda } from '../dominio/tipos';
 import type { Billetera } from '../estado/useBilletera';
+import { TarjetaInflacion } from '../inflacion/TarjetaInflacion';
 import {
-  DIAS_SEMANA,
   PERIODOS,
   dolares,
-  gastoPorDiaSemana,
   hallazgos,
   hayDatosDesde,
   mayoresGastos,
@@ -27,8 +26,6 @@ import {
 import { Barras, Columnas, Variacion, type Barra } from './Graficos';
 import { actualizarHistoricos, historicosGuardados } from './historicos';
 import './reportes.css';
-
-const DIAS_LARGOS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
 const pesos = (c: Centavos) => formatearMonto(c, 'ARS', { sinDecimales: true });
 const usd = (c: Centavos) => formatearMonto(c, 'USD', { sinDecimales: true });
@@ -64,7 +61,7 @@ export function Reportes({ billetera, enLinea }: { billetera: Billetera; enLinea
     };
   }, [ajustes.casa, enLinea]);
 
-  // Las correcciones a mano de la inflación (Inicio → Inflación) pisan a la fuente acá también.
+  // Las correcciones a mano de la inflación (Reportes → Inflación) pisan a la fuente acá también.
   const historicos = useMemo(() => {
     const h = historicosGuardados(ajustes.casa);
     let inflacionHasta = h.inflacionHasta;
@@ -91,7 +88,11 @@ export function Reportes({ billetera, enLinea }: { billetera: Billetera; enLinea
       </div>
 
       {vista === 'periodo' ? (
-        <VistaPeriodo datos={datos} />
+        <VistaPeriodo
+          datos={datos}
+          historicos={historicos}
+          inflacion={<TarjetaInflacion key="inflacion" ajustes={ajustes} enLinea={enLinea} />}
+        />
       ) : (
         <VistaTendencias
           datos={datos}
@@ -107,7 +108,16 @@ export function Reportes({ billetera, enLinea }: { billetera: Billetera; enLinea
 
 /* ---------- Período ---------- */
 
-function VistaPeriodo({ datos }: { datos: Datos }) {
+function VistaPeriodo({
+  datos,
+  historicos,
+  inflacion,
+}: {
+  datos: Datos;
+  historicos: Historicos;
+  /** La tarjeta de Inflación: no depende del período, se muestra siempre. */
+  inflacion: React.ReactNode;
+}) {
   const [id, setId] = useState<IdPeriodo>('mes');
   const hoyStr = hoy();
   const periodo = rangoPeriodo(id, hoyStr);
@@ -140,6 +150,7 @@ function VistaPeriodo({ datos }: { datos: Datos }) {
       <>
         {filtro}
         <p className="vacio">No hay gastos ni ingresos en este período.</p>
+        {inflacion}
       </>
     );
   }
@@ -147,8 +158,7 @@ function VistaPeriodo({ datos }: { datos: Datos }) {
   const ahorro = actual.ingresos - actual.gastos;
   // Sin datos del período anterior entero, comparar mentiría: no se compara.
   const comparable = hayDatosDesde(datos, periodo.anterior);
-  const lista = hallazgos(datos, periodo, pesos);
-  const porDia = gastoPorDiaSemana(datos, periodo);
+  const lista = hallazgos(datos, periodo, pesos, { historicos, enCurso: id === 'mes' });
 
   // Categorías: las 6 más grandes y el resto junto, para no pasar de 7 filas.
   const filasCat = porCategoria(datos, periodo);
@@ -248,24 +258,11 @@ function VistaPeriodo({ datos }: { datos: Datos }) {
         </Seccion>
       )}
 
+      {/* Donde estaba "Un día típico de la semana". */}
+      {inflacion}
+
       {actual.cantidadGastos > 0 && (
         <>
-          <Seccion titulo="Un día típico de la semana">
-            <Columnas
-              key={id}
-              datos={porDia.map((v, i) => ({
-                clave: String(i),
-                etiqueta: DIAS_SEMANA[i]!,
-                nombre: `Un ${DIAS_LARGOS[i]!.toLowerCase()} típico`,
-                valor: v,
-              }))}
-              formato={pesos}
-              formatoEje={eje('ARS')}
-              destacar
-              nota="Lo que gastás un día típico (la mediana): un pago grande aislado, como el alquiler, no lo distorsiona."
-            />
-          </Seccion>
-
           <Seccion titulo="En qué se fue">
             <Barras datos={barrasCat} formato={pesos} />
             {comparable && (

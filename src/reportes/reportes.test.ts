@@ -2,7 +2,6 @@ import type { Categoria, Cuenta, Movimiento } from '../dominio/tipos';
 import {
   dolares,
   factorInflacion,
-  gastoPorDiaSemana,
   hallazgos,
   hayDatosDesde,
   patrimonioMensual,
@@ -78,8 +77,8 @@ describe('períodos', () => {
   });
 });
 
-describe('resumen y día de la semana', () => {
-  // Del jueves 1 al miércoles 14 de octubre de 2026: dos de cada día.
+describe('resumen', () => {
+  // Del jueves 1 al miércoles 14 de octubre de 2026.
   const r = { desde: '2026-10-01', hasta: '2026-10-14' };
   const movs = [
     mov({ fecha: '2026-10-03', monto: 100_00, cuentaId: 'banco' }), // sábado
@@ -90,25 +89,6 @@ describe('resumen y día de la semana', () => {
     mov({ fecha: '2026-10-06', monto: 999_00, cuentaId: 'banco', borrado: true }),
     mov({ fecha: '2026-10-20', monto: 999_00, cuentaId: 'banco' }), // fuera del rango
   ];
-
-  it('toma el día típico de cada día de la semana', () => {
-    const porDia = gastoPorDiaSemana(datos(movs), r);
-    expect(porDia[5]).toBe(200_00); // sábado: (100 + 300) / 2
-    expect(porDia[0]).toBe((50_00 + 1500_00) / 2); // lunes, el dólar a $ 1.500
-    expect(porDia[2]).toBe(0);
-  });
-
-  it('un pago grande aislado no convierte a ese día en el más caro', () => {
-    // Cuatro lunes de octubre: el alquiler en uno, cafés en los otros tres.
-    const lunes = [
-      mov({ fecha: '2026-10-05', monto: 450_000_00, cuentaId: 'banco', categoriaId: 'super' }),
-      mov({ fecha: '2026-10-12', monto: 5_000_00, cuentaId: 'banco' }),
-      mov({ fecha: '2026-10-19', monto: 5_000_00, cuentaId: 'banco' }),
-      mov({ fecha: '2026-10-26', monto: 5_000_00, cuentaId: 'banco' }),
-    ];
-    const porDia = gastoPorDiaSemana(datos(lunes), { desde: '2026-10-01', hasta: '2026-10-31' });
-    expect(porDia[0]).toBe(5_000_00);
-  });
 
   it('suma ingresos, gastos, ahorro y días sin gastos', () => {
     const res = resumen(datos(movs), r);
@@ -137,8 +117,8 @@ describe('categorías', () => {
       { id: 'salidas', total: 100_00, anterior: 0, parte: 0.25 },
     ]);
 
-    const textos = hallazgos(datos(movs), p, (c) => String(c / 100)).map((h) => h.texto);
-    expect(textos[0]).toBe('super es lo que más subió: 100 más que el mes pasado al día 15 (+50%).');
+    const textos = hallazgos(datos(movs), p, (c) => String(c / 100)).map((h) => h.texto.replace(/\u00a0/g, ' '));
+    expect(textos[0]).toBe('super es lo que más subió: 100 más que el mes pasado al día 15 (▲ 50% más).');
   });
 
   it('no compara contra un período en el que la app todavía no tenía datos', () => {
@@ -283,5 +263,122 @@ describe('lectura de las APIs', () => {
 
   it('el eje redondea a números limpios', () => {
     expect([1, 7, 13, 240, 2600, 49_000].map(topeEje)).toEqual([1, 10, 20, 250, 5000, 50_000]);
+  });
+});
+
+describe('lo que llama la atención', () => {
+  const textos = (d: Datos, p: ReturnType<typeof rangoPeriodo>, o?: Parameters<typeof hallazgos>[3]) =>
+    hallazgos(d, p, (c) => String(Math.round(c / 100)), o).map((h) => h.texto.replace(/\u00a0/g, ' '));
+
+  it('avisa si una cuenta quedó en negativo, sólo mirando el mes en curso', () => {
+    const p = rangoPeriodo('mes', '2026-10-15');
+    const cuentas = [cuenta('banco', 'ARS', 1_000_00), cuenta('mp', 'ARS', 0)];
+    const movs = [mov({ fecha: '2026-10-02', monto: 500_00, cuentaId: 'mp' })];
+    const d = { cuentas, categorias: CATEGORIAS, movimientos: movs, cotizacion: 1500 };
+    expect(textos(d, p, { enCurso: true })[0]).toBe(
+      'mp está en negativo (−$ 500): seguro falta cargar un ingreso o una transferencia.',
+    );
+    expect(textos(d, p).some((t) => t.includes('negativo'))).toBe(false);
+  });
+
+  it('dice si te pasaste del tope o si lo respetaste', () => {
+    const p = rangoPeriodo('mesPasado', '2026-10-15');
+    const conTope = [{ ...categoria('super'), presupuesto: 1_000_00 }, categoria('salidas', 'gasto', 1)];
+    const pasado = [mov({ fecha: '2026-09-02', monto: 1_200_00, cuentaId: 'banco' })];
+    const d = { cuentas: CUENTAS, categorias: conTope, movimientos: pasado, cotizacion: 1500 };
+    expect(textos(d, p)[0]).toBe('Te pasaste del tope de super por 200 (▲ 20% más de lo previsto).');
+
+    const bien = [mov({ fecha: '2026-09-02', monto: 800_00, cuentaId: 'banco' })];
+    expect(textos({ ...d, movimientos: bien }, p)[0]).toBe('Respetaste el tope de super.');
+  });
+
+  it('compara descontando inflación sólo con meses ya publicados', () => {
+    const movs = [
+      mov({ fecha: '2026-08-10', monto: 1_000_00, cuentaId: 'banco' }),
+      mov({ fecha: '2026-09-10', monto: 1_050_00, cuentaId: 'banco' }),
+    ];
+    const h: Historicos = { inflacion: new Map([['2026-08', 2], ['2026-09', 10]]), dolar: [] };
+    // Septiembre: +5% en pesos, pero con 10% de inflación es menos.
+    const p = rangoPeriodo('mesPasado', '2026-10-15');
+    expect(textos(datos(movs), p, { historicos: h })).toContain(
+      'Descontando la inflación, gastaste ▼ 5% menos que el mes anterior (en pesos fue ▲ 5% más).',
+    );
+    // Octubre todavía no tiene dato: no se dice nada.
+    const octubre = [...movs, mov({ fecha: '2026-10-05', monto: 1_000_00, cuentaId: 'banco' })];
+    expect(textos(datos(octubre), rangoPeriodo('mes', '2026-10-15'), { historicos: h }).some((t) => t.includes('inflación'))).toBe(
+      false,
+    );
+  });
+
+  it('cuenta a cuánto compraste dólares contra el dólar de hoy', () => {
+    const p = rangoPeriodo('mes', '2026-10-15');
+    const movs = [
+      mov({ fecha: '2026-10-02', monto: 100_00, cuentaId: 'banco' }),
+      mov({
+        fecha: '2026-10-03',
+        tipo: 'transferencia',
+        monto: 1_400_000_00,
+        cuentaId: 'banco',
+        categoriaId: null,
+        cuentaDestinoId: 'usd',
+        montoDestino: 1_000_00,
+      }),
+    ];
+    expect(textos(datos(movs, 1500), p)).toContain(
+      'Compraste US$ 1.000 a 1400 promedio. Hoy el dólar está 1500: ▲ 7% más que lo que pagaste.',
+    );
+  });
+
+  it('marca gastos sin categoría y el que se lleva buena parte del total', () => {
+    const p = rangoPeriodo('mes', '2026-10-15');
+    const movs = [
+      mov({ fecha: '2026-10-01', monto: 100_00, cuentaId: 'banco' }),
+      mov({ fecha: '2026-10-02', monto: 100_00, cuentaId: 'banco' }),
+      mov({ fecha: '2026-10-03', monto: 100_00, cuentaId: 'banco', categoriaId: null }),
+      mov({ fecha: '2026-10-04', monto: 700_00, cuentaId: 'banco', nota: 'Alquiler' }),
+    ];
+    const t = textos(datos(movs), p);
+    expect(t).toContain('Un solo gasto se llevó el 70% del total: Alquiler, 700 el 4/10.');
+    expect(t).toContain('Un gasto sin categoría (100): asignales una para saber en qué se fue.');
+  });
+
+  it('la racha sin gastar cuenta desde que empezaste a usar la app', () => {
+    const p = rangoPeriodo('mes', '2026-10-15');
+    const nuevas = [cuenta('banco', 'ARS', 0, '2026-10-08T12:00:00.000Z')];
+    const movs = [
+      mov({ fecha: '2026-10-08', monto: 100_00, cuentaId: 'banco' }),
+      mov({ fecha: '2026-10-13', monto: 100_00, cuentaId: 'banco' }),
+    ];
+    const d = { cuentas: nuevas, categorias: CATEGORIAS, movimientos: movs, cotizacion: 1500 };
+    // Del 1 al 7 la app no existía: la racha es del 9 al 12, no del 1 al 7.
+    expect(textos(d, p)).toContain('Tu racha más larga sin gastar: 4 días seguidos, del 9/10 al 12/10.');
+  });
+
+  it('el efectivo en pesos contra la última inflación', () => {
+    const p = rangoPeriodo('mes', '2026-10-15');
+    const cuentas = [{ ...cuenta('billetera', 'ARS', 200_000_00), tipo: 'efectivo' as const }];
+    const movs = [mov({ fecha: '2026-10-02', monto: 100_00, cuentaId: 'billetera' })];
+    const h: Historicos = { inflacion: new Map([['2026-09', 2]]), dolar: [] };
+    const d = { cuentas, categorias: CATEGORIAS, movimientos: movs, cotizacion: 1500 };
+    expect(textos(d, p, { historicos: h, enCurso: true })).toContain(
+      'Tenés 199900 en efectivo: con la inflación de septiembre (2%) pierden unos 3998 por mes.',
+    );
+  });
+
+  it('una suba de menos de 10% no es noticia', () => {
+    const p = rangoPeriodo('mes', '2026-10-15');
+    const movs = [
+      mov({ fecha: '2026-10-02', monto: 105_00, cuentaId: 'banco' }),
+      mov({ fecha: '2026-09-02', monto: 100_00, cuentaId: 'banco' }),
+    ];
+    expect(textos(datos(movs), p).some((t) => t.includes('subió'))).toBe(false);
+  });
+
+  it('nunca muestra más de seis', () => {
+    const p = rangoPeriodo('mes', '2026-10-15');
+    const movs = Array.from({ length: 12 }, (_, i) =>
+      mov({ fecha: `2026-10-${String(i + 1).padStart(2, '0')}`, monto: 1_00, cuentaId: 'banco', categoriaId: null }),
+    );
+    expect(textos(datos(movs), p, { enCurso: true }).length).toBeLessThanOrEqual(6);
   });
 });

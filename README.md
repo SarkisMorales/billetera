@@ -16,9 +16,9 @@ teléfono: no hay servidor, cuenta ni login.
 
 | Pantalla | Qué muestra |
 | --- | --- |
-| Inicio | Patrimonio total en pesos y dólares (con un ojito para ocultar los montos), lo que entró y gastaste en el mes, saldo por cuenta, inflación mes a mes y gasto por categoría con presupuesto. |
+| Inicio | Patrimonio total en pesos y dólares (con un ojito para ocultar los montos), lo que entró y gastaste en el mes, saldo por cuenta y gasto por categoría con presupuesto. |
 | Movimientos | Mes por mes, agrupado por día, con buscador y filtro por cuenta y categoría. Tocás uno para editarlo o borrarlo. |
-| Reportes | Cruza cuentas, categorías, movimientos, dólar e inflación. Ver abajo. |
+| Reportes | Cruza cuentas, categorías, movimientos, dólar e inflación, y muestra la inflación mes a mes. Ver abajo. |
 | Ajustes | Dólar de referencia, cuentas, categorías y presupuestos, Archivos y Transferencias, tema. |
 
 El botón **+** carga un gasto, un ingreso o una transferencia. Recuerda la
@@ -41,7 +41,7 @@ El botón **+** carga un gasto, un ingreso o una transferencia. Recuerda la
 Cotización: [dolarapi.com](https://dolarapi.com), se actualiza como mucho
 una vez por hora, al abrir la app o al volver la señal.
 
-## Inflación (Inicio)
+## Inflación (Reportes → Período)
 
 Último dato mensual, acumulada del año y los últimos **3 o 6 meses** mes a
 mes, cada uno comparado con el anterior en puntos (▲ subió, ▼ bajó). La
@@ -50,7 +50,10 @@ acumulada se calcula compuesta (2% y 3% dan 5,06%, no 5%).
 - Fuente: `GET https://api.argentinadatos.com/v1/finanzas/indices/inflacion`,
   que devuelve `[{ "fecha": "AAAA-MM-DD", "valor": 1.9 }, ...]` (fin de mes,
   % mensual del INDEC). El dato de un mes sale a mediados del siguiente.
-- Se guarda en el teléfono y se pide **como mucho una vez por día**. Si la
+- Está en Reportes → Período, debajo de "Lo que llama la atención", y se
+  ve con cualquier período elegido (la inflación no depende de él).
+- Se guarda en el teléfono y se pide **como mucho una vez por día**, al
+  abrir Reportes. Si la
   API falla o no hay conexión, se usa lo guardado y la tarjeta avisa de qué
   fecha es. Tras un fallo, no se reintenta antes de una hora.
 - **Cargar o corregir un mes a mano** (últimos 12 meses cerrados): pisa al
@@ -62,17 +65,36 @@ acumulada se calcula compuesta (2% y 3% dan 5,06%, no 5%).
 
 Módulo aparte (`src/reportes/`): sólo lee los datos de la app, nunca los
 escribe, y nada del resto depende de él. Si se borra la carpeta y la pestaña
-en `App.tsx`, la app queda igual.
+en `App.tsx`, la app queda igual, salvo que la tarjeta de Inflación deja de
+verse. La tarjeta es de `src/inflacion/` y es lo único en la pantalla de Reportes
+que guarda algo (las correcciones a mano de un mes).
 
 **Período** (este mes, mes pasado, últimos 3, 6 o 12 meses):
 
 | Reporte | Cómo se calcula |
 | --- | --- |
 | Resumen | Gastado, entrado, cuánto te quedó y qué porcentaje. "Este mes" se compara contra el mes pasado **hasta el mismo día**; los demás, contra el período anterior de igual largo. Si la app no tenía datos de todo ese período anterior, no compara. |
-| Lo que llama la atención | La categoría que más subió, el día de la semana más caro, el gasto hormiga (gastos de menos de US$ 5 a la cotización de hoy), de qué cuenta sale la plata y los días sin gastos. Sólo aparece lo que tiene datos suficientes. |
-| Un día típico de la semana | La **mediana** de lo gastado cada lunes, martes, etc. Mediana para que el alquiler un lunes no haga parecer caros a todos los lunes. |
+| Lo que llama la atención | Hasta 6 frases, de la más importante a la menos. Ver abajo. Sólo aparece lo que tiene datos suficientes. |
+| Inflación | La tarjeta de inflación (ver arriba). |
 | En qué se fue / De dónde salió | Gasto por categoría (con variación) y por cuenta. |
 | Los gastos más grandes | Los 5 mayores del período. |
+
+Las frases de "Lo que llama la atención", en orden de prioridad:
+
+| Frase | Cuándo sale |
+| --- | --- |
+| ⚠️ Una cuenta en negativo | Sólo en "Este mes": casi siempre falta cargar un ingreso o una transferencia. |
+| 🎯 Te pasaste del tope / respetaste los topes | Períodos de un mes, topes por mes. "Respetaste" sólo en "Mes pasado" (con el mes en curso todavía no se sabe). Usa los topes de hoy. |
+| 📈 La categoría que más subió | Contra el período anterior, si subió 10% o más. |
+| 🧮 Descontando la inflación | Gasto del período contra el anterior en pesos de un mismo mes. Sólo si todos los meses ya tienen inflación publicada (con "Este mes" nunca). |
+| 🧾 Un solo gasto que se llevó mucho | El gasto más grande, si es 25% o más del total y hay 4 gastos o más. |
+| 💵 Compraste dólares | Transferencias de pesos a dólares en el período: a cuánto pagaste en promedio contra el dólar de hoy. |
+| 📉 La categoría que más bajó | Si bajó 10% o más. |
+| 🐜 Gasto hormiga | 5 gastos o más de menos de US$ 5 que sumen 5% o más del total. |
+| 🏷️ Gastos sin categoría | Cuántos y cuánto suman. |
+| 💸 Efectivo y la inflación | Sólo en "Este mes": cuánto pierde por mes la plata en cuentas de efectivo en pesos con la última inflación, si es más de US$ 1. |
+| 💳 De qué cuenta sale la plata | Si una cuenta pone el 50% o más y tenés más de una. |
+| 🌱 Racha sin gastar | La racha más larga, de 3 días o más, contando desde que empezaste a usar la app. |
 
 **Tendencias** (últimos 6 meses), en tres unidades:
 

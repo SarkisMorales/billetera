@@ -6,8 +6,9 @@
  * La dependencia es en un solo sentido: Reportes usa el núcleo, el núcleo no
  * sabe que Reportes existe.
  */
-import { enPesos } from '../dominio/calculos';
-import { diasDelMes, mesDe, sumarMeses } from '../dominio/fechas';
+import { enPesos, saldos, tienePeriodo } from '../dominio/calculos';
+import { formatearMonto } from '../dominio/dinero';
+import { diaYMes, diasDelMes, mesDe, nombreMes, sumarDias, sumarMeses } from '../dominio/fechas';
 import type { Categoria, Centavos, Cuenta, Movimiento } from '../dominio/tipos';
 
 /* ---------- Períodos ---------- */
@@ -149,37 +150,7 @@ export function variacion(actual: number, anterior: number): number | null {
   return anterior > 0 ? actual / anterior - 1 : null;
 }
 
-/* ---------- Día de la semana ---------- */
-
-export const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-
-function mediana(xs: number[]): number {
-  if (!xs.length) return 0;
-  const o = [...xs].sort((a, b) => a - b);
-  const medio = Math.floor(o.length / 2);
-  return o.length % 2 ? o[medio]! : (o[medio - 1]! + o[medio]!) / 2;
-}
-
-/**
- * Lo que gastás un día típico de cada día de la semana: la mediana de lo
- * gastado en cada lunes, cada martes, etc. Mediana y no promedio: si el
- * alquiler cae un lunes, el promedio diría que los lunes gastás fortunas. Y
- * por día y no total: en un mes puede haber cinco sábados y cuatro lunes.
- * Índice 0 = lunes.
- */
-export function gastoPorDiaSemana(d: Datos, r: Rango): Centavos[] {
-  const cuentas = porId(d.cuentas);
-  const porFecha = new Map<string, number>();
-  for (const m of gastosEn(d, r)) {
-    porFecha.set(m.fecha, (porFecha.get(m.fecha) ?? 0) + enPesos(m, cuentas, d.cotizacion));
-  }
-  const dias: number[][] = Array.from({ length: 7 }, () => []);
-  for (let f = aFecha(r.desde); f <= aFecha(r.hasta); f.setDate(f.getDate() + 1)) {
-    const clave = `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}-${String(f.getDate()).padStart(2, '0')}`;
-    dias[(f.getDay() + 6) % 7]!.push(porFecha.get(clave) ?? 0);
-  }
-  return dias.map((xs) => Math.round(mediana(xs)));
-}
+/* ---------- Desde cuándo hay datos ---------- */
 
 /**
  * Desde cuándo hay datos: el primer movimiento o la primera cuenta creada,
@@ -259,63 +230,219 @@ export interface Hallazgo {
 /** Gasto chico: menos de esto en dólares. En dólares para que la inflación no lo vuelva viejo. */
 export const UMBRAL_HORMIGA_USD = 5;
 
+/** Cuántas frases se muestran como mucho: las primeras de la lista son las más importantes. */
+export const MAX_HALLAZGOS = 6;
+
+/** Espacios que no cortan línea: que "$ 10.400" o "▲ 12%" no queden partidos en dos renglones. */
+const pegado = (s: string) => s.replace(/ /g, '\u00a0');
+const pct = (x: number) => `${Math.round(Math.abs(x) * 100)}%`;
+/** "▲ 22% más" / "▼ 8% menos": nunca sólo un color. */
+const flecha = (x: number) => (x >= 0 ? `${pegado(`▲ ${pct(x)}`)} más` : `${pegado(`▼ ${pct(x)}`)} menos`);
+const pctInflacion = (v: number) => `${v.toLocaleString('es-AR', { maximumFractionDigits: 1 })}%`;
+
+export interface OpcionesHallazgos {
+  /** Inflación (y dólar) para las frases que la necesitan. Sin esto, esas no salen. */
+  historicos?: Historicos;
+  /** Si el período es el mes en curso: ahí también se mira cómo están las cuentas hoy. */
+  enCurso?: boolean;
+}
+
 /**
- * Frases cortas con lo que más llama la atención del período. Sólo se dicen
+ * Frases cortas con lo que más llama la atención del período, de la más
+ * importante a la menos: primero las alertas (una cuenta en negativo, un tope
+ * pasado), después lo que cambió y al final las curiosidades. Sólo se dicen
  * cuando hay datos suficientes para que no sean ruido.
  */
 export function hallazgos(
   d: Datos,
   p: Periodo,
   formato: (c: Centavos) => string,
+  opciones: OpcionesHallazgos = {},
 ): Hallazgo[] {
+  const fmt = formato;
+  formato = (c) => pegado(fmt(c));
+  const usd = (c: Centavos) => pegado(formatearMonto(c, 'USD', { sinDecimales: true }));
   const res = resumen(d, p);
   if (res.cantidadGastos === 0) return [];
+  const { historicos, enCurso = false } = opciones;
   const lista: Hallazgo[] = [];
   const categorias = porId(d.categorias);
   const cuentas = porId(d.cuentas);
+  const gastos = gastosEn(d, p);
+  const comparable = hayDatosDesde(d, p.anterior);
+  const filasCat = porCategoria(d, p);
+  const nombreCat = (id: string) => categorias.get(id)?.nombre ?? 'Sin categoría';
+  const unMes = mesDe(p.desde) === mesDe(p.hasta);
+  const saldosHoy = enCurso ? saldos(d.cuentas, d.movimientos) : null;
 
-  // La categoría que más subió, en pesos, contra el período anterior.
-  const subas = (hayDatosDesde(d, p.anterior) ? porCategoria(d, p) : [])
-    .filter((f) => f.anterior > 0 && f.total - f.anterior > 0)
-    .sort((a, b) => b.total - b.anterior - (a.total - a.anterior));
-  const suba = subas[0];
+  // Una cuenta en negativo casi siempre es un ingreso o una transferencia sin cargar.
+  if (saldosHoy) {
+    for (const c of d.cuentas) {
+      const saldo = saldosHoy.get(c.id) ?? 0;
+      if (!c.archivada && saldo < 0) {
+        lista.push({
+          icono: '⚠️',
+          texto: `${c.nombre} está en negativo (${pegado(formatearMonto(saldo, c.moneda, { sinDecimales: true }))}): seguro falta cargar un ingreso o una transferencia.`,
+        });
+      }
+    }
+  }
+
+  // Topes por mes: sólo cuando el período es un mes. Los topes entre fechas
+  // tienen sus propias fechas y ya se ven en el Inicio.
+  if (unMes) {
+    const conTope = d.categorias.filter((c) => c.tipo === 'gasto' && c.presupuesto && !tienePeriodo(c));
+    const total = (id: string) => filasCat.find((f) => f.id === id)?.total ?? 0;
+    const pasadas = conTope
+      .filter((c) => total(c.id) > c.presupuesto!)
+      .sort((a, b) => total(b.id) - b.presupuesto! - (total(a.id) - a.presupuesto!));
+    if (pasadas.length === 1) {
+      const c = pasadas[0]!;
+      lista.push({
+        icono: '🎯',
+        texto: `Te pasaste del tope de ${c.nombre} por ${formato(total(c.id) - c.presupuesto!)} (${flecha(total(c.id) / c.presupuesto! - 1)} de lo previsto).`,
+      });
+    } else if (pasadas.length > 1) {
+      const nombres = pasadas.map((c) => c.nombre);
+      lista.push({
+        icono: '🎯',
+        texto: `Te pasaste del tope en ${pasadas.length} categorías: ${nombres.slice(0, -1).join(', ')} y ${nombres[nombres.length - 1]}.`,
+      });
+    } else if (!enCurso && conTope.length > 0) {
+      lista.push({
+        icono: '🎯',
+        texto:
+          conTope.length === 1
+            ? `Respetaste el tope de ${conTope[0]!.nombre}.`
+            : `Respetaste los ${conTope.length} topes del mes.`,
+      });
+    }
+  }
+
+  // La categoría que más subió, en pesos, contra el período anterior. Menos
+  // de 10% no es noticia.
+  const cambios = comparable ? filasCat.filter((f) => f.anterior > 0) : [];
+  const suba = [...cambios].filter((f) => f.total >= f.anterior * 1.1).sort((a, b) => b.total - b.anterior - (a.total - a.anterior))[0];
   if (suba) {
-    const c = categorias.get(suba.id);
-    const v = variacion(suba.total, suba.anterior)!;
     lista.push({
       icono: '📈',
-      texto: `${c?.nombre ?? 'Sin categoría'} es lo que más subió: ${formato(suba.total - suba.anterior)} más que ${p.contraQue} (+${Math.round(v * 100)}%).`,
+      texto: `${nombreCat(suba.id)} es lo que más subió: ${formato(suba.total - suba.anterior)} más que ${p.contraQue} (${flecha(suba.total / suba.anterior - 1)}).`,
     });
   }
 
-  // Día de la semana caro, con tres semanas o más de datos (la mediana con
-  // dos valores es un promedio y no protege de nada).
-  if (res.dias >= 21) {
-    const porDia = gastoPorDiaSemana(d, p);
-    const max = Math.max(...porDia);
-    const i = porDia.indexOf(max);
-    const tipico = porDia.reduce((a, b) => a + b, 0) / 7;
-    const veces = tipico > 0 ? max / tipico : 0;
-    if (veces >= 1.5) {
-      const nombres = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
+  // Lo mismo, descontando la inflación. Sólo si todos los meses del período
+  // ya tienen el dato publicado: con un mes sin dato, la comparación mentiría.
+  const ultimoInfl = historicos ? ultimoMesInflacion(historicos) : null;
+  if (historicos && ultimoInfl && comparable && mesDe(p.hasta) <= ultimoInfl) {
+    const real = (r: Rango): number | null => {
+      let total = 0;
+      for (const m of gastosEn(d, r)) {
+        const f = factorInflacion(mesDe(m.fecha), historicos);
+        if (f === null) return null;
+        total += enPesos(m, cuentas, d.cotizacion) * f;
+      }
+      return total;
+    };
+    const ahora = real(p);
+    const antes = real(p.anterior);
+    const anteriorNominal = resumen(d, p.anterior).gastos;
+    const vReal = ahora !== null && antes ? variacion(ahora, antes) : null;
+    const vNominal = variacion(res.gastos, anteriorNominal);
+    if (vReal !== null && vNominal !== null) {
       lista.push({
-        icono: '📅',
-        texto: `Un ${nombres[i]} típico gastás ${veces.toLocaleString('es-AR', { maximumFractionDigits: 1 })} veces lo de un día típico de la semana.`,
+        icono: '🧮',
+        texto:
+          Math.abs(vReal) < 0.01
+            ? `Descontando la inflación, gastaste lo mismo que ${p.contraQue} (en pesos fue ${flecha(vNominal)}).`
+            : `Descontando la inflación, gastaste ${flecha(vReal)} que ${p.contraQue} (en pesos fue ${flecha(vNominal)}).`,
       });
     }
+  }
+
+  // Un solo gasto que se lleva buena parte del período.
+  if (gastos.length >= 4) {
+    const mayor = mayoresGastos(d, p, 1)[0]!;
+    const monto = enPesos(mayor, cuentas, d.cotizacion);
+    const parte = monto / res.gastos;
+    if (parte >= 0.25) {
+      const nombre = mayor.nota || (mayor.categoriaId ? nombreCat(mayor.categoriaId) : 'un gasto');
+      lista.push({
+        icono: '🧾',
+        texto: `Un solo gasto se llevó el ${pct(parte)} del total: ${nombre}, ${formato(monto)} el ${diaYMes(mayor.fecha)}.`,
+      });
+    }
+  }
+
+  // Compra de dólares: a cuánto los pagaste contra el dólar de hoy.
+  let pesosPagados = 0;
+  let usdComprados = 0;
+  for (const m of d.movimientos) {
+    if (m.borrado || m.tipo !== 'transferencia' || !enRango(m.fecha, p)) continue;
+    const origen = cuentas.get(m.cuentaId);
+    const destino = m.cuentaDestinoId ? cuentas.get(m.cuentaDestinoId) : undefined;
+    if (origen?.moneda === 'ARS' && destino?.moneda === 'USD' && m.montoDestino) {
+      pesosPagados += m.monto;
+      usdComprados += m.montoDestino;
+    }
+  }
+  if (usdComprados > 0) {
+    const tc = pesosPagados / usdComprados;
+    const v = d.cotizacion ? variacion(d.cotizacion, tc) : null;
+    lista.push({
+      icono: '💵',
+      texto:
+        v === null
+          ? `Compraste ${usd(usdComprados)} a ${formato(Math.round(tc * 100))} promedio.`
+          : Math.abs(v) < 0.005
+            ? `Compraste ${usd(usdComprados)} a ${formato(Math.round(tc * 100))} promedio, lo mismo que vale hoy.`
+            : `Compraste ${usd(usdComprados)} a ${formato(Math.round(tc * 100))} promedio. Hoy el dólar está ${formato(Math.round(d.cotizacion! * 100))}: ${flecha(v)} que lo que pagaste.`,
+    });
+  }
+
+  // La categoría que más bajó: también vale decir lo que salió bien.
+  const baja = [...cambios].filter((f) => f.total < f.anterior).sort((a, b) => a.total - a.anterior - (b.total - b.anterior))[0];
+  if (baja && (baja.anterior - baja.total) / baja.anterior >= 0.1) {
+    lista.push({
+      icono: '📉',
+      texto: `En ${nombreCat(baja.id)} gastaste ${formato(baja.anterior - baja.total)} menos que ${p.contraQue} (${flecha(baja.total / baja.anterior - 1)}).`,
+    });
   }
 
   // Gasto hormiga.
   if (d.cotizacion) {
     const umbral = UMBRAL_HORMIGA_USD * 100 * d.cotizacion;
-    const chicos = gastosEn(d, p)
-      .map((m) => enPesos(m, cuentas, d.cotizacion))
-      .filter((c) => c < umbral);
+    const chicos = gastos.map((m) => enPesos(m, cuentas, d.cotizacion)).filter((c) => c < umbral);
     const suma = chicos.reduce((a, b) => a + b, 0);
     if (chicos.length >= 5 && suma / res.gastos >= 0.05) {
       lista.push({
         icono: '🐜',
         texto: `${chicos.length} gastos chicos (menos de US$ ${UMBRAL_HORMIGA_USD} cada uno) suman ${formato(suma)}: el ${Math.round((suma / res.gastos) * 100)}% del total.`,
+      });
+    }
+  }
+
+  // Gastos sin categoría: no aparecen bien en "En qué se fue".
+  const sinCategoria = gastos.filter((m) => !m.categoriaId || !categorias.has(m.categoriaId));
+  if (sinCategoria.length > 0) {
+    const suma = sinCategoria.reduce((a, m) => a + enPesos(m, cuentas, d.cotizacion), 0);
+    lista.push({
+      icono: '🏷️',
+      texto: `${sinCategoria.length === 1 ? 'Un gasto' : `${sinCategoria.length} gastos`} sin categoría (${formato(suma)}): asignales una para saber en qué se fue.`,
+    });
+  }
+
+  // Efectivo en pesos: no rinde nada, la inflación se lo come.
+  if (saldosHoy && historicos && ultimoInfl) {
+    const inflacion = historicos.inflacion.get(ultimoInfl)!;
+    const efectivo = d.cuentas
+      .filter((c) => !c.archivada && c.tipo === 'efectivo' && c.moneda === 'ARS')
+      .reduce((a, c) => a + Math.max(0, saldosHoy.get(c.id) ?? 0), 0);
+    const pierde = Math.round((efectivo * inflacion) / 100);
+    // Que valga la pena decirlo: más de un dólar por mes.
+    if (efectivo > 0 && inflacion > 0 && pierde >= (d.cotizacion ?? 0) * 100) {
+      lista.push({
+        icono: '💸',
+        texto: `Tenés ${formato(efectivo)} en efectivo: con la inflación de ${nombreMes(ultimoInfl).split(' ')[0]!.toLowerCase()} (${pctInflacion(inflacion)}) pierden unos ${formato(pierde)} por mes.`,
       });
     }
   }
@@ -329,14 +456,28 @@ export function hallazgos(
     });
   }
 
-  if (res.diasSinGastos > 0 && res.dias >= 7) {
+  // La racha más larga sin gastar, contando desde que hay datos en la app:
+  // los días antes de empezar a usarla no son días sin gastos.
+  const inicio = inicioDeDatos(d);
+  const desde = inicio && inicio > p.desde ? inicio : p.desde;
+  const conGasto = new Set(gastos.map((m) => m.fecha));
+  let racha = { largo: 0, desde: '' };
+  let actual = { largo: 0, desde: '' };
+  for (let f = desde; f <= p.hasta; f = sumarDias(f, 1)) {
+    if (conGasto.has(f)) actual = { largo: 0, desde: '' };
+    else {
+      actual = { largo: actual.largo + 1, desde: actual.largo ? actual.desde : f };
+      if (actual.largo > racha.largo) racha = { ...actual };
+    }
+  }
+  if (racha.largo >= 3) {
     lista.push({
       icono: '🌱',
-      texto: `${res.diasSinGastos} de ${res.dias} días sin ningún gasto cargado.`,
+      texto: `Tu racha más larga sin gastar: ${racha.largo} días seguidos, del ${diaYMes(racha.desde)} al ${diaYMes(sumarDias(racha.desde, racha.largo - 1))}.`,
     });
   }
 
-  return lista.slice(0, 4);
+  return lista.slice(0, MAX_HALLAZGOS);
 }
 
 /* ---------- Históricos: inflación y dólar ---------- */

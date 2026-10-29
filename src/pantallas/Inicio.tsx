@@ -9,7 +9,6 @@ import {
 } from '../dominio/calculos';
 import { formatearMonto } from '../dominio/dinero';
 import { diasEntre, diaYMes, hoy, mesDe, nombreMes } from '../dominio/fechas';
-import { TarjetaInflacion } from '../inflacion/TarjetaInflacion';
 import { NOMBRE_CASA, type Cuenta } from '../dominio/tipos';
 import type { Billetera } from '../estado/useBilletera';
 
@@ -171,9 +170,6 @@ export function Inicio({
           })}
         </ul>
       </section>
-
-      {/* Donde estaba "A este ritmo cerrás el mes en…". */}
-      <TarjetaInflacion ajustes={ajustes} enLinea={enLinea} />
 
       <section className="bloque">
         <div className="bloque-cabecera">
