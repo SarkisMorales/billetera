@@ -153,3 +153,32 @@ describe('cuánto queda para gastar', () => {
     expect(libreHastaFinDeMes(100_00, 300_00, 0, '2026-11-15')).toEqual({ libre: -200_00, porDia: 0, dias: 16 });
   });
 });
+
+describe('planilla para Excel', () => {
+  it('formato argentino: punto y coma, coma decimal, sin miles, fechas DD/MM/AAAA', async () => {
+    const { movimientosACsv } = await import('../datos/planilla');
+    const cuentas = [
+      { id: 'mp', nombre: 'Mercado Pago', moneda: 'ARS' as const, tipo: 'virtual' as const, saldoInicial: 0, archivada: false, orden: 0, creadoEn: '', actualizadoEn: '' },
+      { id: 'usd', nombre: 'Dólares', moneda: 'USD' as const, tipo: 'efectivo' as const, saldoInicial: 0, archivada: false, orden: 1, creadoEn: '', actualizadoEn: '' },
+    ];
+    const categorias = [{ id: 'super', nombre: 'Súper', tipo: 'gasto' as const, emoji: '🛒', presupuesto: null, archivada: false, orden: 0, creadoEn: '', actualizadoEn: '' }];
+    const csv = movimientosACsv(
+      [
+        mov({ fecha: '2026-10-02', nota: 'Coto; "grande"', monto: 1_234_567_50 }),
+        mov({ fecha: '2026-10-01', nota: '', monto: 10_00, cuentaId: 'usd', cotizacion: 1500.5 }),
+        mov({ fecha: '2026-10-03', nota: 'Compra', tipo: 'transferencia', categoriaId: null, monto: 1_500_000_00, cuentaDestinoId: 'usd', montoDestino: 1_000_00, cotizacion: 1500 }),
+        mov({ fecha: '2026-10-04', nota: 'Borrado', borrado: true }),
+      ],
+      cuentas,
+      categorias,
+      1600,
+    );
+    const filas = csv.replace('﻿', '').trim().split('\r\n');
+    expect(csv.startsWith('﻿')).toBe(true);
+    expect(filas[0]).toBe('Fecha;Tipo;Monto;Moneda;Cuenta;Categoría;Nota;Hacia;Monto que entró;Moneda que entró;En pesos;Cotización');
+    expect(filas[1]).toBe('01/10/2026;Gasto;10,00;USD;Dólares;Súper;;;;;15005,00;1500,5');
+    expect(filas[2]).toBe('02/10/2026;Gasto;1234567,50;ARS;Mercado Pago;Súper;"Coto; ""grande""";;;;1234567,50;');
+    expect(filas[3]).toBe('03/10/2026;Transferencia;1500000,00;ARS;Mercado Pago;;Compra;Dólares;1000,00;USD;;1500');
+    expect(filas).toHaveLength(4);
+  });
+});

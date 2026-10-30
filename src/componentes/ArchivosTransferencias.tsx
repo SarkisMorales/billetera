@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { Hoja } from './Hoja';
 import { guardarRespaldo } from '../datos/backup';
+import { guardarPlanilla } from '../datos/planilla';
 import {
   contenido,
   contenidoLocal,
@@ -162,6 +163,25 @@ export function ArchivosTransferencias({
           Elegir archivo
         </button>
         <input ref={entrada} type="file" accept="application/json,.json" hidden onChange={alElegir} />
+      </div>
+
+      <div className="tarjeta-opcion">
+        <div className="tarjeta-opcion-texto">
+          <h3>Exportar a Excel</h3>
+          <p className="ayuda">
+            Todos los movimientos en una planilla (CSV) para Excel o Google Sheets, con la categoría, la cuenta y el
+            monto en pesos. Es para mirar los números en otro lado: para guardar la billetera, usá "Guardar archivo".
+          </p>
+        </div>
+        <button
+          type="button"
+          className="btn ancho"
+          onClick={async () => {
+            if (await guardarPlanilla()) avisar('Planilla lista');
+          }}
+        >
+          Exportar planilla
+        </button>
       </div>
 
       {pendiente && c && (

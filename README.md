@@ -236,6 +236,12 @@ categorías, presupuestos y ajustes.
   proyectos ni las notas de esta billetera. Una app vieja rechaza un archivo
   2 en vez de perder las notas sin avisar.
 
+**Exportar a Excel**: todos los movimientos en una planilla CSV (fecha,
+tipo, monto, moneda, cuenta, categoría, nota, destino, monto en pesos y
+cotización), en formato argentino: punto y coma entre columnas, coma
+decimal, fechas DD/MM/AAAA. Es para mirar los números en Excel o Google
+Sheets; no sirve para volver a cargarlos (para eso, "Guardar archivo").
+
 Para pasar la billetera a otro teléfono: Guardar archivo en el viejo →
 abrir la Billetera en el nuevo → Ajustes → Cargar archivo.
 
