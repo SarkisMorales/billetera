@@ -13,6 +13,7 @@ import { formatearMonto } from '../dominio/dinero';
 import { NOMBRE_CASA, type Categoria, type Cuenta, type Tema, type TipoCategoria } from '../dominio/tipos';
 import type { Billetera } from '../estado/useBilletera';
 import { SeccionFijos } from '../fijos/SeccionFijos';
+import { TopesInflacion } from '../inflacion/TopesInflacion';
 
 type Editando =
   | { que: 'cuenta'; cuenta: Cuenta | null }
@@ -206,6 +207,7 @@ export function Ajustes({
                 </button>
               ))}
           </div>
+          {tipo === 'gasto' && <TopesInflacion categorias={categorias} ajustes={ajustes} avisar={avisar} />}
         </section>
       ))}
 

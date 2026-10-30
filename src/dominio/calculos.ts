@@ -215,6 +215,25 @@ export function estadoPresupuestosPorFechas(
 }
 
 /**
+ * Los topes mensuales subidos un porcentaje (la inflación del último mes),
+ * redondeados para arriba a $ 100: "$ 120.000 con 1,9%" da "$ 122.300". Los
+ * topes entre fechas no: duran unos días.
+ */
+export function topesConInflacion(
+  categorias: Categoria[],
+  porcentaje: number,
+): { id: string; antes: Centavos; despues: Centavos }[] {
+  if (!(porcentaje > 0)) return [];
+  return categorias
+    .filter((c) => c.tipo === 'gasto' && !c.archivada && c.presupuesto && c.presupuesto > 0 && !tienePeriodo(c))
+    .map((c) => ({
+      id: c.id,
+      antes: c.presupuesto!,
+      despues: Math.ceil((c.presupuesto! * (1 + porcentaje / 100)) / 100_00) * 100_00,
+    }));
+}
+
+/**
  * Lo que te queda para gastar hasta fin de mes: lo que entró, menos lo que
  * gastaste, menos los gastos fijos que todavía faltan pagar este mes. Y eso
  * repartido en los días que quedan, contando hoy. Negativo si ya te pasaste.

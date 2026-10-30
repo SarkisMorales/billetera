@@ -117,6 +117,11 @@ export interface Ajustes {
    * archivos viejos no la tienen.
    */
   inflacionManual?: Record<string, number>;
+  /**
+   * Último mes de inflación ('AAAA-MM') con el que se subieron los topes
+   * mensuales, para no ofrecer subirlos dos veces con el mismo dato.
+   */
+  topesAjustadosHasta?: string | null;
 }
 
 export const AJUSTES_POR_DEFECTO: Ajustes = {

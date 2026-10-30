@@ -155,6 +155,21 @@ export class Repositorio {
     });
   }
 
+  /**
+   * Cambia varios topes juntos (subirlos con la inflación, o el "Deshacer") y
+   * anota con qué mes de inflación quedaron. Todo o nada.
+   */
+  async ajustarTopes(cambios: { id: string; presupuesto: number }[], ajustadosHasta: string | null): Promise<void> {
+    if (cambios.some((c) => !Number.isInteger(c.presupuesto) || c.presupuesto <= 0)) {
+      throw new ErrorDeValidacion('Un tope quedó en un monto inválido.');
+    }
+    const ahora = this.reloj.ahora();
+    await this.db.transaction('rw', this.db.categorias, this.db.ajustes, async () => {
+      for (const c of cambios) await this.db.categorias.update(c.id, { presupuesto: c.presupuesto, actualizadoEn: ahora });
+      await this.db.ajustes.put({ ...(await this.ajustes()), topesAjustadosHasta: ajustadosHasta, id: 'unico' });
+    });
+  }
+
   /* ---------- Movimientos ---------- */
 
   private async normalizar(datos: DatosMovimiento) {

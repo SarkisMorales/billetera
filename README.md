@@ -95,7 +95,7 @@ Alquiler, servicios, suscripciones, el sueldo. Módulo aparte
 | Sin internet se usa la última cotización bajada | Se ve cuándo se bajó y la marca "sin conexión". |
 | Corregir el saldo de una cuenta ajusta el saldo inicial | El ajuste no aparece como gasto ni ingreso y no ensucia el mes. |
 | Borrar un movimiento lo marca como borrado | Así importar un backup viejo no lo revive. |
-| Presupuesto: ámbar al 80%, rojo al pasarte | Los topes están en pesos: con inflación conviene revisarlos cada tanto. |
+| Presupuesto: ámbar al 80%, rojo al pasarte | Los topes están en pesos: con inflación conviene revisarlos cada tanto. En Ajustes → Categorías de gasto, **"Subir los topes X%"** los sube con la inflación del último mes (redondeado para arriba a $ 100), con "Deshacer". Se ofrece una vez por cada dato nuevo del INDEC. |
 | Tope **por mes** o **entre fechas** (por categoría) | Entre fechas cuenta sólo lo gastado en esa categoría en ese período, aunque cruce de mes ("$ 50.000 en comida del 29/10 al 31/10"). Antes de empezar y después de terminar no aparece; al terminar, la categoría queda sin tope. |
 
 Cotización: [dolarapi.com](https://dolarapi.com), se actualiza como mucho

@@ -182,3 +182,38 @@ describe('planilla para Excel', () => {
     expect(filas).toHaveLength(4);
   });
 });
+
+describe('topes e inflación', () => {
+  it('sube sólo los topes mensuales, redondeando para arriba a $ 100', async () => {
+    const { topesConInflacion } = await import('../dominio/calculos');
+    const cat = (id: string, presupuesto: number | null, extra = {}) => ({
+      id, nombre: id, tipo: 'gasto' as const, emoji: '', presupuesto, archivada: false, orden: 0, creadoEn: '', actualizadoEn: '', ...extra,
+    });
+    const categorias = [
+      cat('super', 120_000_00),
+      cat('salidas', 30_000_00),
+      cat('sin', null),
+      cat('archivada', 50_000_00, { archivada: true }),
+      cat('finde', 50_000_00, { presupuestoDesde: '2026-10-29', presupuestoHasta: '2026-10-31' }),
+      { ...cat('sueldo', null), tipo: 'ingreso' as const },
+    ];
+    expect(topesConInflacion(categorias, 1.9)).toEqual([
+      { id: 'super', antes: 120_000_00, despues: 122_300_00 },
+      { id: 'salidas', antes: 30_000_00, despues: 30_600_00 },
+    ]);
+    expect(topesConInflacion(categorias, 0)).toEqual([]);
+  });
+
+  it('subir y deshacer, todo junto, y anota con qué mes quedaron', async () => {
+    const { preparar } = await import('./ayudas');
+    const { repo, db } = preparar();
+    const a = await repo.crearCategoria({ nombre: 'Súper', tipo: 'gasto', emoji: '🛒', presupuesto: 120_000_00 });
+    await repo.ajustarTopes([{ id: a.id, presupuesto: 122_300_00 }], '2026-09');
+    expect((await db.categorias.get(a.id))!.presupuesto).toBe(122_300_00);
+    expect((await repo.ajustes()).topesAjustadosHasta).toBe('2026-09');
+    await repo.ajustarTopes([{ id: a.id, presupuesto: 120_000_00 }], null);
+    expect((await db.categorias.get(a.id))!.presupuesto).toBe(120_000_00);
+    expect((await repo.ajustes()).topesAjustadosHasta).toBeNull();
+    await expect(repo.ajustarTopes([{ id: a.id, presupuesto: 0 }], null)).rejects.toThrow('Un tope quedó en un monto inválido.');
+  });
+});
