@@ -142,3 +142,14 @@ describe('totales de una lista de varios meses', () => {
     expect(totales(lista, cuentas, 1600)).toEqual({ ingresos: 5_000_00, gastos: 1_000_00 + 15_000_00 });
   });
 });
+
+describe('cuánto queda para gastar', () => {
+  it('lo que entró, menos lo gastado y los fijos que faltan, repartido en los días que quedan', async () => {
+    const { libreHastaFinDeMes } = await import('../dominio/calculos');
+    // 30 de octubre: quedan 2 días (30 y 31).
+    expect(libreHastaFinDeMes(900_000_00, 381_800_00, 293_000_00, '2026-10-30')).toEqual({ libre: 225_200_00, porDia: 112_600_00, dias: 2 });
+    // 1 de noviembre: los 30 días.
+    expect(libreHastaFinDeMes(300_000_00, 0, 0, '2026-11-01').dias).toBe(30);
+    expect(libreHastaFinDeMes(100_00, 300_00, 0, '2026-11-15')).toEqual({ libre: -200_00, porDia: 0, dias: 16 });
+  });
+});

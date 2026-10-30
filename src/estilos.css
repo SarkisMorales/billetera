@@ -329,6 +329,18 @@ button, input, select, textarea { font: inherit; color: inherit; font-size: 16px
   text-align: left;
 }
 .cotizacion .num { color: #FFFFFF; font-weight: 700; }
+.total-libre {
+  display: grid;
+  gap: 2px;
+  margin: 14px 0 0;
+  padding: 10px 14px;
+  border-radius: var(--r-chico);
+  background: rgb(255 255 255 / 0.14);
+  font-size: 15px;
+  line-height: 1.35;
+}
+.total-libre small { font-size: 12px; color: rgb(255 255 255 / 0.78); }
+.total-libre.pasado { background: rgb(0 0 0 / 0.16); }
 .sin-red { color: #FFD27A; }
 
 .rotulo { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--texto-suave); font-weight: 500; }

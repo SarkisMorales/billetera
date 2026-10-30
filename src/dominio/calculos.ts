@@ -215,6 +215,22 @@ export function estadoPresupuestosPorFechas(
 }
 
 /**
+ * Lo que te queda para gastar hasta fin de mes: lo que entró, menos lo que
+ * gastaste, menos los gastos fijos que todavía faltan pagar este mes. Y eso
+ * repartido en los días que quedan, contando hoy. Negativo si ya te pasaste.
+ */
+export function libreHastaFinDeMes(
+  ingresos: Centavos,
+  gastos: Centavos,
+  fijosQueFaltan: Centavos,
+  hoyStr: string,
+): { libre: Centavos; porDia: Centavos; dias: number } {
+  const libre = ingresos - gastos - fijosQueFaltan;
+  const dias = diasDelMes(mesDe(hoyStr)) - Number(hoyStr.slice(8, 10)) + 1;
+  return { libre, porDia: libre > 0 ? Math.floor(libre / dias) : 0, dias };
+}
+
+/**
  * A este ritmo, cuánto vas a haber gastado al final del mes. Lineal y
  * simple a propósito: alquiler y servicios caen a principio de mes y la
  * inflan los primeros días, así que antes del día 7 no se muestra.

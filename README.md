@@ -27,7 +27,7 @@ movimientos, proyectos y notas hay guardados ahí.
 
 | Pantalla | Qué muestra |
 | --- | --- |
-| Inicio | Patrimonio total en pesos y dólares (con un ojito para ocultar los montos), lo que entró y gastaste en el mes, saldo por cuenta y gasto por categoría con presupuesto. |
+| Inicio | Patrimonio total en pesos y dólares (con un ojito para ocultar los montos), lo que entró y gastaste en el mes, **cuánto te queda para el mes y por día**, gastos fijos para confirmar, saldo por cuenta y gasto por categoría con presupuesto. |
 | Movimientos | Mes por mes, agrupado por día con lo gastado ese día, y filtro por cuenta y categoría. El buscador busca en **todos los meses**, sin importar acentos, por nota, categoría, cuenta o monto exacto ("2500"). Si cargaste algo con fecha futura, se puede ir hasta ese mes. Tocás uno para editarlo o borrarlo. |
 | Reportes | Cruza cuentas, categorías, movimientos, dólar e inflación, y muestra la inflación mes a mes. Ver abajo. |
 | Proyectos | Proyectos con presupuesto, objetivos y notas propias; y aparte, Notas sueltas estilo Todoist. Ver abajo. |
@@ -50,6 +50,14 @@ El botón **+** carga un gasto, un ingreso o una transferencia. Recuerda la
 
 Nada de esto se guarda aparte: las sugerencias se calculan de tus
 movimientos (`src/dominio/sugerencias.ts`, `src/dominio/calculadora.ts`).
+
+### Cuánto te queda
+
+En la tarjeta azul, cuando este mes ya entró algo: **lo que entró, menos lo
+gastado y los gastos fijos que faltan pagar**, y eso dividido por los días
+que quedan del mes (contando hoy). Si da negativo dice "Gastaste $ X más de
+lo que entró" o, si es por los fijos que faltan, "te faltan $ X para cerrar
+el mes". No cuenta lo que ya tenías ahorrado: es la cuenta del mes.
 
 ## Gastos e ingresos fijos
 

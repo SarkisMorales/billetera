@@ -3,6 +3,7 @@ import {
   cotizacionVigente,
   estadoPresupuestos,
   estadoPresupuestosPorFechas,
+  libreHastaFinDeMes,
   patrimonio,
   resumenMes,
   saldos,
@@ -11,6 +12,7 @@ import { formatearMonto } from '../dominio/dinero';
 import { diasEntre, diaYMes, hoy, mesDe, nombreMes } from '../dominio/fechas';
 import { NOMBRE_CASA, type Cuenta } from '../dominio/tipos';
 import type { Billetera } from '../estado/useBilletera';
+import { faltaPagarEsteMes } from '../fijos/calculos';
 import { TarjetaFijos } from '../fijos/TarjetaFijos';
 import type { Fijo } from '../fijos/tipos';
 import { useFijos } from '../fijos/useFijos';
@@ -100,6 +102,12 @@ export function Inicio({
     .sort((a, b) => b.gastado - a.gastado);
   const mayor = Math.max(...filas.filter((f) => !f.pres).map((f) => f.gastado), 1);
 
+  // Cuánto queda para gastar: sólo si este mes ya entró algo (si no, no hay de dónde).
+  const falta = faltaPagarEsteMes(fijos, cuentas, hoyStr, cotizacion);
+  const libre = resumen.ingresos > 0 ? libreHastaFinDeMes(resumen.ingresos, resumen.gastos, falta.total, hoyStr) : null;
+  // Con espacio que no corta línea: que "$ 250.100" no quede partido.
+  const pesos = (c: number) => formatearMonto(c, 'ARS', { sinDecimales: true }).replace(' ', '\u00a0');
+
   const casa = ajustes.cotizacionManual ? 'manual' : NOMBRE_CASA[ajustes.casa];
   const visibles = cuentas.filter((c) => !c.archivada);
 
@@ -142,6 +150,32 @@ export function Inicio({
             <span className="total-mes">{oculto ? '••••' : formatearMonto(resumen.gastos, 'ARS', { sinDecimales: true })}</span>
           </div>
         </div>
+        {libre && (
+          <p className={`total-libre${libre.libre <= 0 ? ' pasado' : ''}`}>
+            <span>
+              {oculto ? (
+                'Te quedan •••• para el mes'
+              ) : libre.libre > 0 ? (
+                <>
+                  Te quedan <strong className="num">{pesos(libre.libre)}</strong> para el mes ·{' '}
+                  <strong className="num">{pesos(libre.porDia)}</strong> por día
+                </>
+              ) : resumen.gastos > resumen.ingresos ? (
+                <>
+                  ⚠️ Gastaste <strong className="num">{pesos(resumen.gastos - resumen.ingresos)}</strong> más de lo que entró
+                </>
+              ) : (
+                <>
+                  ⚠️ Con los fijos que faltan, te faltan <strong className="num">{pesos(-libre.libre)}</strong> para cerrar el
+                  mes
+                </>
+              )}
+            </span>
+            <small>
+              Lo que entró, menos lo gastado{falta.cuantos > 0 ? ' y los fijos que faltan' : ''}.
+            </small>
+          </p>
+        )}
         <button type="button" className="cotizacion" onClick={irAAjustes}>
           {cotizacion ? (
             <>
