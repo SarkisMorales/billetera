@@ -12,6 +12,17 @@ teléfono: no hay servidor, cuenta ni login.
    iOS no borra los datos por inactividad (en Safari común sí puede, si no
    la abrís en una semana).
 
+**Ojo: en el iPhone, Safari y la app del ícono guardan los datos por
+separado.** Lo que cargás en uno no aparece en el otro. Usala siempre desde
+el ícono. Si la abrís en Safari (por ejemplo, tocando un link), arriba
+aparece un aviso amarillo.
+
+**Actualizaciones.** Cada vez que la app vuelve a primer plano pregunta si
+hay versión nueva. Si hay, se recarga sola, pero nunca con una hoja abierta
+o mientras escribís: espera a que termines. En Ajustes, abajo de todo, dice
+qué versión corre (fecha y commit), desde dónde está abierta y cuántos
+movimientos, proyectos y notas hay guardados ahí.
+
 ## Las cinco pantallas
 
 | Pantalla | Qué muestra |

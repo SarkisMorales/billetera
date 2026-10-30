@@ -262,4 +262,29 @@ describe('actualizar la base del teléfono', () => {
     await proyectos.crearNota({ texto: 'Primera nota' });
     expect(await nueva.notas.count()).toBe(1);
   });
+
+  it('una versión vieja de la app (sin Proyectos) abriendo la base nueva no borra proyectos ni notas', async () => {
+    const nombre = 'billetera-ida-y-vuelta';
+    const nueva = new BilleteraDB(nombre);
+    const proyectos = new RepositorioProyectos(nueva);
+    await proyectos.crearProyecto({ nombre: 'Autos', emoji: '🚗', moneda: 'ARS', presupuesto: null });
+    await proyectos.crearNota({ texto: 'No me pierdas' });
+    nueva.close();
+
+    // Lo que hace un iPhone que todavía corre la versión anterior desde el caché.
+    const vieja = new Dexie(nombre);
+    vieja.version(1).stores({
+      cuentas: 'id, orden',
+      categorias: 'id, tipo, orden',
+      movimientos: 'id, fecha, cuentaId, cuentaDestinoId, categoriaId, creadoEn',
+      ajustes: 'id',
+    });
+    await vieja.table('cuentas').add({ id: 'c1', nombre: 'Efectivo', orden: 0 });
+    vieja.close();
+
+    const otraVez = new BilleteraDB(nombre);
+    expect((await otraVez.proyectos.toArray()).map((p) => p.nombre)).toEqual(['Autos']);
+    expect((await otraVez.notas.toArray()).map((n) => n.texto)).toEqual(['No me pierdas']);
+    expect(await otraVez.cuentas.count()).toBe(1);
+  });
 });

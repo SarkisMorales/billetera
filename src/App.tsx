@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FormMovimiento } from './componentes/FormMovimiento';
+import { dondeCorre } from './datos/actualizacion';
 import { guardarRespaldo, tocaBackup } from './datos/backup';
 import { actualizarCotizaciones } from './datos/cotizacion';
 import { pedirAlmacenamientoPersistente } from './datos/db';
@@ -139,6 +140,15 @@ export function App() {
       </header>
 
       <main className="contenido">
+        {dondeCorre() === 'safari' && (
+          <div className="alerta" role="note">
+            <span>
+              Estás en <strong>Safari</strong>: lo que cargues acá se guarda aparte y <strong>no aparece en la app del
+              ícono de inicio</strong>. Usala siempre desde el ícono. Si todavía no la instalaste: Compartir → Agregar a
+              inicio.
+            </span>
+          </div>
+        )}
         {ofrecerBackup && pantalla === 'inicio' && (
           <div className="alerta">
             <span>Hace más de una semana que no guardás un respaldo.</span>

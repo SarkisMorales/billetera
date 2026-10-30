@@ -1,10 +1,12 @@
+import { useLiveQuery } from 'dexie-react-hooks';
 import { useMemo, useState, type CSSProperties } from 'react';
 import { ArchivosTransferencias } from '../componentes/ArchivosTransferencias';
 import { colorCategoria } from '../componentes/colores';
 import { EditorCategoria, EditorCuenta } from '../componentes/Editores';
+import { NOMBRE_DONDE, dondeCorre } from '../datos/actualizacion';
 import { actualizarCotizaciones } from '../datos/cotizacion';
 import { repositorio } from '../datos/repositorio';
-import { borrarTodo } from '../datos/respaldo';
+import { borrarTodo, contenidoLocal } from '../datos/respaldo';
 import { saldos, tienePeriodo } from '../dominio/calculos';
 import { diaYMes, hoy } from '../dominio/fechas';
 import { formatearMonto } from '../dominio/dinero';
@@ -40,6 +42,7 @@ export function Ajustes({
   const [bajando, setBajando] = useState(false);
   const [manualTexto, setManualTexto] = useState(ajustes.cotizacionManual?.toString() ?? '');
   const s = useMemo(() => saldos(cuentas, movimientos), [cuentas, movimientos]);
+  const guardado = useLiveQuery(() => contenidoLocal(), []);
 
   const usos = useMemo(() => {
     const n = new Map<string, number>();
@@ -239,6 +242,18 @@ export function Ajustes({
           Borrar todos los datos
         </button>
       </section>
+
+      {/* Para saber qué versión corre y dónde están los datos, si algo "desaparece". */}
+      <p className="ayuda version">
+        Versión {__VERSION__} · abierta desde {NOMBRE_DONDE[dondeCorre()]}.
+        {guardado && (
+          <>
+            {' '}
+            Guardado acá: {guardado.movimientos} movimientos, {guardado.proyectos}{' '}
+            {guardado.proyectos === 1 ? 'proyecto' : 'proyectos'} y {guardado.notas} {guardado.notas === 1 ? 'nota' : 'notas'}.
+          </>
+        )}
+      </p>
 
       {editando?.que === 'cuenta' && (
         <EditorCuenta

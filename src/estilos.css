@@ -690,3 +690,4 @@ div.barra { cursor: default; }
 .aviso .btn-texto { color: var(--fondo); text-decoration: underline; }
 /* Con una hoja abierta, el aviso taparía sus botones. */
 body.con-hoja .aviso { display: none; }
+.ayuda.version { text-align: center; padding: 0 8px; }
