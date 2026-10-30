@@ -229,10 +229,15 @@ export class Repositorio {
     return movimiento;
   }
 
-  async borrarMovimiento(id: string): Promise<void> {
+  async borrarMovimiento(id: string, borrado = true): Promise<void> {
     const actual = await this.db.movimientos.get(id);
     if (!actual) return;
-    await this.db.movimientos.put({ ...actual, borrado: true, actualizadoEn: this.reloj.ahora() });
+    await this.db.movimientos.put({ ...actual, borrado, actualizadoEn: this.reloj.ahora() });
+  }
+
+  /** El "Deshacer" de borrar: lo devuelve tal cual estaba. */
+  restaurarMovimiento(id: string): Promise<void> {
+    return this.borrarMovimiento(id, false);
   }
 
   /* ---------- Primer uso ---------- */

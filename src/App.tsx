@@ -132,6 +132,14 @@ export function App() {
 
   const cerrarFormulario = useCallback(() => setFormulario(null), []);
 
+  const alBorrar = useCallback(
+    (m: Movimiento) => {
+      setFormulario(null);
+      avisar('Movimiento borrado', () => repositorio.restaurarMovimiento(m.id));
+    },
+    [avisar],
+  );
+
   return (
     <div className="app">
       <header className="cabecera">
@@ -253,6 +261,7 @@ export function App() {
           existente={formulario.existente}
           alCerrar={cerrarFormulario}
           alGuardar={alGuardar}
+          alBorrar={alBorrar}
         />
       )}
     </div>

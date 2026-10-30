@@ -36,6 +36,21 @@ movimientos, proyectos y notas hay guardados ahí.
 El botón **+** carga un gasto, un ingreso o una transferencia. Recuerda la
 última cuenta usada.
 
+### Cargar rápido y sin errores
+
+| Qué | Cómo |
+| --- | --- |
+| Frecuentes | Abajo de la nota, tus gastos de siempre (notas repetidas 2 veces o más en los últimos 90 días). Un toque completa nota, categoría, cuenta y monto. |
+| Sugerencias | Mientras escribís la nota ("co…") sugiere las que ya usaste ("Coto"). Un toque completa categoría y cuenta; el monto sólo si no pusiste uno. Si escribís entera una nota conocida, elige sola la categoría. |
+| Calculadora | Botones + − × ÷ abajo del monto (el teclado del iPhone no los tiene): "1.500 + 300 × 2" muestra "= $ 2.100" y guarda eso. "=" deja el resultado. |
+| Fecha | Hoy, Ayer o cualquier día. Una fecha futura avisa: el saldo ya la descuenta. |
+| Duplicados | Si ya hay uno igual (tipo, monto, cuenta y día), avisa antes de guardar: "Guardar igual" si es otro. |
+| Cerrar sin querer | Si escribiste algo, tocar afuera o Cancelar pregunta antes de descartarlo. |
+| Borrar | Sin confirmación: el aviso de abajo tiene "Deshacer". |
+
+Nada de esto se guarda aparte: las sugerencias se calculan de tus
+movimientos (`src/dominio/sugerencias.ts`, `src/dominio/calculadora.ts`).
+
 ## Reglas de plata
 
 | Regla | Por qué |

@@ -9,27 +9,36 @@ export function Hoja({
   alCerrar,
   children,
   acciones,
+  antesDeCerrar,
 }: {
   titulo: string;
   alCerrar: () => void;
   children: ReactNode;
   acciones?: ReactNode;
+  /** Si devuelve false, no se cierra: para no perder lo que se estaba cargando por un toque de más. */
+  antesDeCerrar?: () => boolean;
 }) {
+  const cerrar = () => {
+    if (!antesDeCerrar || antesDeCerrar()) alCerrar();
+  };
+
   useEffect(() => {
-    const alTeclado = (e: KeyboardEvent) => e.key === 'Escape' && alCerrar();
+    const alTeclado = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && (!antesDeCerrar || antesDeCerrar())) alCerrar();
+    };
     window.addEventListener('keydown', alTeclado);
     document.body.classList.add('con-hoja');
     return () => {
       window.removeEventListener('keydown', alTeclado);
       document.body.classList.remove('con-hoja');
     };
-  }, [alCerrar]);
+  }, [alCerrar, antesDeCerrar]);
 
   return (
-    <div className="velo" onMouseDown={(e) => e.target === e.currentTarget && alCerrar()}>
+    <div className="velo" onMouseDown={(e) => e.target === e.currentTarget && cerrar()}>
       <section className="hoja" role="dialog" aria-modal="true" aria-label={titulo}>
         <header className="hoja-cabecera">
-          <button type="button" className="btn-texto" onClick={alCerrar}>
+          <button type="button" className="btn-texto" onClick={cerrar}>
             Cancelar
           </button>
           <h2>{titulo}</h2>

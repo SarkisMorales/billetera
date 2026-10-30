@@ -641,6 +641,61 @@ div.barra { cursor: default; }
 .emoji-campo input { text-align: center; font-size: 22px; padding: 6px; }
 
 .ayuda { font-size: 13px; color: var(--texto-suave); margin: 0; }
+
+/* Sólo para lectores de pantalla. */
+.sr-solo {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- Cargar un movimiento: calculadora, sugerencias y fecha rápida ---------- */
+
+.monto-bloque { display: grid; gap: 6px; justify-items: center; }
+.campo-monto.calculando input { font-size: 34px; }
+.calc-resultado { margin: -4px 0 0; font-size: 17px; font-weight: 700; color: var(--acento); }
+.calc { display: flex; gap: 8px; justify-content: center; }
+.calc-boton {
+  width: 46px;
+  height: 36px;
+  border-radius: 99px;
+  border: 1px solid var(--borde-tarjeta);
+  background: var(--superficie);
+  color: var(--texto-suave);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+.calc-boton.igual { background: var(--acento-suave); color: var(--acento); border-color: transparent; }
+.calc-boton:disabled { opacity: .4; }
+
+.nota-bloque { display: grid; gap: 10px; }
+.sugerencias { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.sugerencias-titulo { font-size: 13px; font-weight: 600; color: var(--texto-suave); }
+.sugerencia {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 7px 12px;
+  border-radius: 99px;
+  border: 1px solid var(--borde-tarjeta);
+  background: var(--superficie);
+  box-shadow: 0 1px 2px rgb(16 24 40 / 0.04);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.sugerencia-nota { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sugerencia-monto { color: var(--texto-suave); font-weight: 500; white-space: nowrap; }
+
+.fecha-rapida { display: flex; gap: 8px; align-items: stretch; }
+.fecha-rapida .ficha { justify-content: center; }
+.aviso-fecha { color: var(--ambar); font-weight: 600; }
 .error { color: var(--rojo); margin: 0; font-weight: 600; }
 
 /* ---------- Archivos y Transferencias ---------- */

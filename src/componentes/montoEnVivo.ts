@@ -1,3 +1,5 @@
+import { OPERADORES, SEPARA, canonico } from '../dominio/calculadora';
+
 /**
  * Formatea un monto mientras se escribe: "5000000" se ve "5.000.000" y
  * "1500,5" se ve "1.500,5". La coma es el decimal (máximo dos).
@@ -20,4 +22,26 @@ export function montoEnVivo(texto: string, { negativo = false } = {}): string {
   const conPuntos = entera.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   if (decimales === null) return signo + conPuntos;
   return `${signo}${conPuntos || '0'},${decimales}`;
+}
+
+/**
+ * Formatea mientras se escribe: cada número con sus puntos de miles y los
+ * operadores con un espacio a cada lado. Un operador al principio se
+ * descarta y dos seguidos se reemplazan por el último.
+ */
+export function expresionEnVivo(texto: string): string {
+  const partes = canonico(texto).split(SEPARA);
+  const salida: string[] = [];
+  for (const parte of partes) {
+    if ((OPERADORES as readonly string[]).includes(parte)) {
+      const ultimo = salida[salida.length - 1];
+      if (ultimo === undefined) continue;
+      if ((OPERADORES as readonly string[]).includes(ultimo)) salida[salida.length - 1] = parte;
+      else salida.push(parte);
+    } else {
+      const numero = montoEnVivo(parte);
+      if (numero) salida.push(numero);
+    }
+  }
+  return salida.join(' ');
 }

@@ -1,11 +1,14 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Hoja } from './Hoja';
-import { montoEnVivo } from './montoEnVivo';
+import { expresionEnVivo, montoEnVivo } from './montoEnVivo';
 import { ErrorDeValidacion, repositorio } from '../datos/repositorio';
+import { OPERADORES, evaluarMonto, tieneOperador, type Operador } from '../dominio/calculadora';
 import { cotizacionVigente, saldos } from '../dominio/calculos';
 import { convertir, formatearMonto, leerMonto, montoParaEditar } from '../dominio/dinero';
-import { hoy } from '../dominio/fechas';
+import { diaYMes, hoy, sumarDias } from '../dominio/fechas';
+import { aprenderNotas, coincidencia, frecuentes, posibleDuplicado, sugerir, type Sugerencia } from '../dominio/sugerencias';
 import type { Movimiento, TipoMovimiento } from '../dominio/tipos';
+import type { DatosMovimiento } from '../dominio/validar';
 import type { Billetera } from '../estado/useBilletera';
 
 const CLAVE_ULTIMA_CUENTA = 'billetera.ultimaCuenta';
@@ -32,50 +35,77 @@ const TIPOS: { id: TipoMovimiento; nombre: string }[] = [
   { id: 'transferencia', nombre: 'Transferencia' },
 ];
 
+const NOMBRE_OPERADOR: Record<Operador, string> = { '+': 'Más', '−': 'Menos', '×': 'Por', '÷': 'Dividido' };
+
 export function FormMovimiento({
   billetera,
   existente,
+  inicial,
   alCerrar,
   alGuardar,
+  alBorrar,
 }: {
   billetera: Billetera;
   existente: Movimiento | null;
+  /** Para uno nuevo que viene armado (por ejemplo, un gasto fijo para confirmar). */
+  inicial?: Partial<DatosMovimiento>;
   alCerrar: () => void;
   alGuardar: (m: Movimiento, esNuevo: boolean) => void;
+  alBorrar: (m: Movimiento) => void;
 }) {
   const { cuentas, categorias, movimientos, ajustes } = billetera;
-  const activas = cuentas.filter((c) => !c.archivada || c.id === existente?.cuentaId);
+  const base = existente ?? inicial;
+  const activas = cuentas.filter((c) => !c.archivada || c.id === base?.cuentaId);
   const s = useMemo(() => saldos(cuentas, movimientos), [cuentas, movimientos]);
+  const hoyStr = hoy();
+  const entradaMonto = useRef<HTMLInputElement>(null);
 
   const cuentaInicial =
-    existente?.cuentaId ??
+    activas.find((c) => c.id === base?.cuentaId)?.id ??
     activas.find((c) => c.id === ultimaCuenta())?.id ??
     activas[0]?.id ??
     '';
+  const montoInicial = base?.monto ? montoEnVivo(montoParaEditar(base.monto)) : '';
 
-  const [tipo, setTipo] = useState<TipoMovimiento>(existente?.tipo ?? 'gasto');
-  const [montoTexto, setMontoTexto] = useState(existente ? montoEnVivo(montoParaEditar(existente.monto)) : '');
+  const [tipo, setTipo] = useState<TipoMovimiento>(base?.tipo ?? 'gasto');
+  const [montoTexto, setMontoTexto] = useState(montoInicial);
   const [cuentaId, setCuentaId] = useState(cuentaInicial);
-  const [categoriaId, setCategoriaId] = useState<string | null>(existente?.categoriaId ?? null);
-  const [destinoId, setDestinoId] = useState<string | null>(existente?.cuentaDestinoId ?? null);
+  const [categoriaId, setCategoriaId] = useState<string | null>(base?.categoriaId ?? null);
+  const [destinoId, setDestinoId] = useState<string | null>(base?.cuentaDestinoId ?? null);
   const [montoDestinoTexto, setMontoDestinoTexto] = useState(
-    existente?.montoDestino ? montoEnVivo(montoParaEditar(existente.montoDestino)) : '',
+    base?.montoDestino ? montoEnVivo(montoParaEditar(base.montoDestino)) : '',
   );
-  const [fecha, setFecha] = useState(existente?.fecha ?? hoy());
-  const [nota, setNota] = useState(existente?.nota ?? '');
+  const [fecha, setFecha] = useState(base?.fecha ?? hoyStr);
+  const [nota, setNota] = useState(base?.nota ?? '');
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  /** El duplicado que ya te mostramos: si guardás de nuevo con lo mismo, va. */
+  const [duplicadoVisto, setDuplicadoVisto] = useState<string | null>(null);
 
   const origen = cuentas.find((c) => c.id === cuentaId);
   const destino = cuentas.find((c) => c.id === destinoId);
-  const monto = leerMonto(montoTexto);
+  const moneda = origen?.moneda ?? 'ARS';
+  const monto = evaluarMonto(montoTexto);
+  const calculando = tieneOperador(montoTexto);
   const montoDestino = leerMonto(montoDestinoTexto);
   const cambiaMoneda = tipo === 'transferencia' && origen && destino && origen.moneda !== destino.moneda;
   const cotizacion = cotizacionVigente(ajustes);
 
   const categoriasDelTipo = categorias.filter(
-    (c) => c.tipo === tipo && (!c.archivada || c.id === existente?.categoriaId),
+    (c) => c.tipo === tipo && (!c.archivada || c.id === base?.categoriaId),
   );
+  const porIdCategoria = useMemo(() => new Map(categorias.map((c) => [c.id, c])), [categorias]);
+
+  /* Lo aprendido de tus notas. Sólo al cargar uno nuevo: editando, cambiar la categoría sola sorprende. */
+  const aprendidas = useMemo(
+    () => (existente || tipo === 'transferencia' ? [] : aprenderNotas(movimientos, tipo)),
+    [movimientos, tipo, existente],
+  );
+  const deSiempre = useMemo(
+    () => (existente || tipo === 'transferencia' ? [] : frecuentes(movimientos, tipo, hoyStr)),
+    [movimientos, tipo, existente, hoyStr],
+  );
+  const sugeridas = nota.trim() ? sugerir(aprendidas, nota) : deSiempre;
 
   /** En una compra/venta de dólares, el tipo de cambio que surge de los dos montos. */
   const cambioImplicito =
@@ -90,10 +120,61 @@ export function FormMovimiento({
       ? formatearMonto(convertir(monto, origen.moneda, destino.moneda, cotizacion), destino.moneda)
       : null;
 
+  const claveDuplicado = `${tipo}|${monto}|${cuentaId}|${fecha}|${destinoId}`;
+  const duplicado =
+    !existente && monto
+      ? posibleDuplicado(
+          { tipo, monto, cuentaId, fecha, cuentaDestinoId: tipo === 'transferencia' ? destinoId : null },
+          movimientos,
+        )
+      : undefined;
+  const avisarDuplicado = duplicado && duplicadoVisto === claveDuplicado;
+
+  /** Si hay algo escrito que se perdería al cerrar. */
+  const sinCambios = existente
+    ? montoTexto === montoInicial &&
+      nota === existente.nota &&
+      fecha === existente.fecha &&
+      tipo === existente.tipo &&
+      cuentaId === existente.cuentaId &&
+      categoriaId === existente.categoriaId &&
+      destinoId === existente.cuentaDestinoId
+    : montoTexto === montoInicial && nota.trim() === (inicial?.nota ?? '').trim();
+
+  function antesDeCerrar(): boolean {
+    return sinCambios || confirm(existente ? '¿Salir sin guardar los cambios?' : '¿Descartar lo que cargaste?');
+  }
+
   function cambiarTipo(t: TipoMovimiento) {
     setTipo(t);
     setError(null);
     if (t !== tipo) setCategoriaId(null);
+  }
+
+  function cambiarNota(texto: string) {
+    setNota(texto);
+    // Si escribiste entera una nota conocida y todavía no elegiste categoría, va la de siempre.
+    const conocida = coincidencia(aprendidas, texto);
+    const categoria = conocida?.categoriaId ? porIdCategoria.get(conocida.categoriaId) : undefined;
+    if (!categoriaId && categoria && !categoria.archivada && categoria.tipo === tipo) setCategoriaId(categoria.id);
+  }
+
+  /** Un toque en una sugerencia completa nota, categoría y cuenta; el monto, sólo si no pusiste uno. */
+  function aplicar(sug: Sugerencia) {
+    setNota(sug.nota);
+    const categoria = sug.categoriaId ? porIdCategoria.get(sug.categoriaId) : undefined;
+    if (categoria && !categoria.archivada && categoria.tipo === tipo) setCategoriaId(categoria.id);
+    const cuenta = activas.find((c) => c.id === sug.cuentaId);
+    if (cuenta) {
+      setCuentaId(cuenta.id);
+      if (!monto) setMontoTexto(montoEnVivo(montoParaEditar(sug.monto)));
+    }
+  }
+
+  function operar(op: Operador) {
+    setMontoTexto(expresionEnVivo(`${montoTexto}${op}`));
+    // En el iPhone, tocar un botón puede cerrar el teclado: se vuelve a abrir.
+    entradaMonto.current?.focus();
   }
 
   async function guardar(ev: React.FormEvent) {
@@ -101,7 +182,11 @@ export function FormMovimiento({
     if (guardando) return;
     setError(null);
     if (!monto) {
-      setError('Escribí un monto mayor a cero.');
+      setError(calculando ? 'La cuenta no da un monto mayor a cero.' : 'Escribí un monto mayor a cero.');
+      return;
+    }
+    if (duplicado && duplicadoVisto !== claveDuplicado) {
+      setDuplicadoVisto(claveDuplicado);
       return;
     }
     const datos = {
@@ -130,15 +215,27 @@ export function FormMovimiento({
   }
 
   async function borrar() {
-    if (!existente || !confirm('¿Borrar este movimiento?')) return;
+    if (!existente) return;
+    // Sin confirmación: el aviso de abajo tiene "Deshacer".
     await repositorio.borrarMovimiento(existente.id);
-    alCerrar();
+    alBorrar(existente);
   }
+
+  const descripcionDuplicado = duplicado
+    ? [
+        duplicado.nota || (duplicado.categoriaId ? porIdCategoria.get(duplicado.categoriaId)?.nombre : null) || null,
+        formatearMonto(duplicado.monto, moneda),
+        origen?.nombre,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : '';
 
   return (
     <Hoja
       titulo={existente ? 'Editar' : 'Nuevo'}
       alCerrar={alCerrar}
+      antesDeCerrar={antesDeCerrar}
       acciones={
         <button type="submit" form="form-movimiento" className="btn-texto fuerte" disabled={guardando}>
           Guardar
@@ -161,21 +258,87 @@ export function FormMovimiento({
           ))}
         </div>
 
-        <label className="campo-monto" data-tipo={tipo}>
-          <span className="moneda">{origen?.moneda === 'USD' ? 'US$' : '$'}</span>
-          <input
-            autoFocus={!existente}
-            inputMode="decimal"
-            enterKeyHint="done"
-            placeholder="0"
-            value={montoTexto}
-            onChange={(e) => setMontoTexto(montoEnVivo(e.target.value))}
-            // Ancho según lo escrito (la fuente es monoespaciada): el signo
-            // queda pegado al número en vez de flotar en el borde.
-            style={{ width: `${Math.max(1, montoTexto.length) + 0.5}ch` }}
-            aria-label="Monto"
-          />
-        </label>
+        <div className="monto-bloque">
+          <label className={`campo-monto${calculando ? ' calculando' : ''}`} data-tipo={tipo}>
+            <span className="moneda">{moneda === 'USD' ? 'US$' : '$'}</span>
+            <input
+              ref={entradaMonto}
+              autoFocus={!existente && !inicial?.monto}
+              inputMode="decimal"
+              enterKeyHint="done"
+              placeholder="0"
+              value={montoTexto}
+              onChange={(e) => setMontoTexto(expresionEnVivo(e.target.value))}
+              // Ancho según lo escrito (la fuente es monoespaciada): el signo
+              // queda pegado al número en vez de flotar en el borde.
+              style={{ width: `${Math.max(1, montoTexto.length) + 0.5}ch` }}
+              aria-label="Monto"
+            />
+          </label>
+          {calculando && (
+            <p className="calc-resultado num" aria-live="polite">
+              {monto ? `= ${formatearMonto(monto, moneda)}` : 'Revisá la cuenta'}
+            </p>
+          )}
+          <div className="calc" role="group" aria-label="Calculadora">
+            {OPERADORES.map((op) => (
+              <button
+                key={op}
+                type="button"
+                className="calc-boton"
+                aria-label={NOMBRE_OPERADOR[op]}
+                // Que el toque no le saque el foco al monto (y no se cierre el teclado).
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => operar(op)}
+                disabled={!montoTexto}
+              >
+                {op}
+              </button>
+            ))}
+            {calculando && (
+              <button
+                type="button"
+                className="calc-boton igual"
+                aria-label="Igual"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => monto && setMontoTexto(montoEnVivo(montoParaEditar(monto)))}
+                disabled={!monto}
+              >
+                =
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="nota-bloque">
+          <label className="campo">
+            <span className="sr-solo">Nota</span>
+            <input
+              value={nota}
+              onChange={(e) => cambiarNota(e.target.value)}
+              placeholder={tipo === 'transferencia' ? 'Nota (opcional)' : '¿En qué? Ej.: Coto, nafta, alquiler'}
+              aria-label="Nota"
+              autoComplete="off"
+              enterKeyHint="done"
+            />
+          </label>
+          {sugeridas.length > 0 && (
+            <div className="sugerencias" role="group" aria-label={nota.trim() ? 'Sugerencias' : 'Tus gastos frecuentes'}>
+              {!nota.trim() && <span className="sugerencias-titulo">Frecuentes</span>}
+              {sugeridas.map((sug) => {
+                const categoria = sug.categoriaId ? porIdCategoria.get(sug.categoriaId) : undefined;
+                const monedaSug = cuentas.find((c) => c.id === sug.cuentaId)?.moneda ?? 'ARS';
+                return (
+                  <button key={sug.clave} type="button" className="sugerencia" onClick={() => aplicar(sug)}>
+                    <span aria-hidden>{categoria?.emoji ?? '•'}</span>
+                    <span className="sugerencia-nota">{sug.nota}</span>
+                    <span className="sugerencia-monto num">{formatearMonto(sug.monto, monedaSug, { sinDecimales: true })}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         <fieldset className="grupo">
           <legend>{tipo === 'transferencia' ? 'Desde' : 'Cuenta'}</legend>
@@ -260,16 +423,35 @@ export function FormMovimiento({
           </fieldset>
         )}
 
-        <div className="fila-campos">
-          <label className="campo">
-            <span>Fecha</span>
-            <input type="date" value={fecha} max="2100-12-31" onChange={(e) => setFecha(e.target.value)} />
-          </label>
-          <label className="campo crece">
-            <span>Nota</span>
-            <input value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Opcional" />
-          </label>
-        </div>
+        <fieldset className="grupo">
+          <legend>Fecha</legend>
+          <div className="fecha-rapida">
+            <button type="button" className="ficha" aria-pressed={fecha === hoyStr} onClick={() => setFecha(hoyStr)}>
+              Hoy
+            </button>
+            <button
+              type="button"
+              className="ficha"
+              aria-pressed={fecha === sumarDias(hoyStr, -1)}
+              onClick={() => setFecha(sumarDias(hoyStr, -1))}
+            >
+              Ayer
+            </button>
+            <label className="campo crece">
+              <span className="sr-solo">Otro día</span>
+              <input
+                type="date"
+                value={fecha}
+                max="2100-12-31"
+                onChange={(e) => e.target.value && setFecha(e.target.value)}
+                aria-label="Fecha"
+              />
+            </label>
+          </div>
+          {fecha > hoyStr && (
+            <small className="ayuda aviso-fecha">⚠️ Es una fecha futura ({diaYMes(fecha)}): el saldo ya lo descuenta desde hoy.</small>
+          )}
+        </fieldset>
 
         {origen?.moneda === 'USD' && tipo !== 'transferencia' && (
           <p className="ayuda">
@@ -283,6 +465,15 @@ export function FormMovimiento({
           </p>
         )}
 
+        {avisarDuplicado && (
+          <div className="alerta" role="alert">
+            <span>
+              ⚠️ Ya cargaste uno igual {fecha === hoyStr ? 'hoy' : `el ${diaYMes(fecha)}`}: {descripcionDuplicado}. Si es otro,
+              tocá <strong>Guardar igual</strong>.
+            </span>
+          </div>
+        )}
+
         {error && (
           <p className="error" role="alert">
             {error}
@@ -290,7 +481,7 @@ export function FormMovimiento({
         )}
 
         <button type="submit" className="btn principal ancho" disabled={guardando}>
-          Guardar
+          {avisarDuplicado ? 'Guardar igual' : 'Guardar'}
         </button>
 
         {existente && (
