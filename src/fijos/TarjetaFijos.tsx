@@ -34,6 +34,7 @@ export function TarjetaFijos({
   if (!pendientes.length && !siguientes.length) return null;
 
   const falta = faltaPagarEsteMes(fijos, cuentas, hoyStr, cotizacion);
+  const conIngresos = [...pendientes, ...siguientes].some((f) => f.tipo === 'ingreso');
   const porIdCuenta = new Map(cuentas.map((c) => [c.id, c]));
   const porIdCategoria = new Map(categorias.map((c) => [c.id, c]));
   const monto = (f: Fijo) =>
@@ -42,7 +43,7 @@ export function TarjetaFijos({
   return (
     <section className="bloque">
       <div className="bloque-cabecera">
-        <h2 className="bloque-titulo">Gastos fijos</h2>
+        <h2 className="bloque-titulo">{conIngresos ? 'Fijos' : 'Gastos fijos'}</h2>
         {falta.cuantos > 0 && (
           <span className="fijos-falta">
             Faltan {oculto ? '••••' : formatearMonto(falta.total, 'ARS', { sinDecimales: true })} este mes

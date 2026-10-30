@@ -128,10 +128,11 @@ export function App() {
   const alGuardar = useCallback(
     async (m: Movimiento, esNuevo: boolean, fijoNuevo?: Fijo) => {
       setFormulario(null);
-      if (esNuevo && fijoEnCurso) {
-        // Confirmaste un gasto fijo: pasa al próximo vencimiento con lo que pagaste.
-        const antes = await repoFijos.confirmar(fijoEnCurso.id, m.monto);
-        avisar(`${fijoEnCurso.nota}: cargado`, () => {
+      // Confirmaste un gasto fijo: pasa al próximo vencimiento con lo que pagaste. Si el fijo ya
+      // no existe (lo borraste en el medio), queda como un movimiento común.
+      const antes = esNuevo && fijoEnCurso ? await repoFijos.confirmar(fijoEnCurso.id, m.monto).catch(() => null) : null;
+      if (antes) {
+        avisar(`${antes.nota}: cargado`, () => {
           repositorio.borrarMovimiento(m.id);
           repoFijos.restaurar(antes);
         });

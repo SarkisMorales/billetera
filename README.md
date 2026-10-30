@@ -18,8 +18,9 @@ el ícono. Si la abrís en Safari (por ejemplo, tocando un link), arriba
 aparece un aviso amarillo.
 
 **Actualizaciones.** Cada vez que la app vuelve a primer plano pregunta si
-hay versión nueva. Si hay, se recarga sola, pero nunca con una hoja abierta
-o mientras escribís: espera a que termines. En Ajustes, abajo de todo, dice
+hay versión nueva. Si llega mientras no estás haciendo nada, se recarga
+sola; si tenés una hoja abierta o estás escribiendo, espera a la próxima vez
+que vuelvas a la app. Nunca recarga en medio de lo que estás usando. En Ajustes, abajo de todo, dice
 qué versión corre (fecha y commit), desde dónde está abierta y cuántos
 movimientos, proyectos y notas hay guardados ahí.
 

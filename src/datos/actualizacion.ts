@@ -38,8 +38,9 @@ function ocupado(): boolean {
 /**
  * Registra el service worker y:
  * - cada vez que la app vuelve a primer plano, pregunta si hay versión nueva;
- * - cuando la nueva toma el control, recarga para usarla, pero nunca con una
- *   hoja abierta o escribiendo: espera a que termines.
+ * - cuando la nueva toma el control, recarga para usarla si no estás haciendo
+ *   nada; si tenés una hoja abierta o estás escribiendo, espera a la próxima
+ *   vez que vuelvas a la app. Nunca recarga en medio de lo que estás usando.
  */
 export function mantenerAlDia(): void {
   if (import.meta.env.DEV || !('serviceWorker' in navigator)) return;
@@ -71,9 +72,7 @@ export function mantenerAlDia(): void {
       habiaVersion = true;
       return;
     }
-    if (pendiente) return;
     pendiente = true;
     recargarSiSePuede();
-    window.setInterval(recargarSiSePuede, 2000);
   });
 }

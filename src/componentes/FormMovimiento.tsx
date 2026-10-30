@@ -214,7 +214,10 @@ export function FormMovimiento({
         ? await repositorio.editarMovimiento(existente.id, datos)
         : await repositorio.crearMovimiento(datos);
       recordarCuenta(cuentaId);
-      const fijoNuevo = puedeRepetir && repetir ? await repoFijos.crearDesdeMovimiento(m, repetir) : undefined;
+      // El movimiento ya está guardado: si el fijo fallara, no se deja el formulario abierto (un
+      // segundo "Guardar" lo duplicaría). Se guarda igual, sin repetir.
+      const fijoNuevo =
+        puedeRepetir && repetir ? await repoFijos.crearDesdeMovimiento(m, repetir).catch(() => undefined) : undefined;
       alGuardar(m, !existente, fijoNuevo);
     } catch (e) {
       if (e instanceof ErrorDeValidacion) setError(e.message);
