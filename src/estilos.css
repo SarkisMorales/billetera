@@ -475,7 +475,8 @@ div.barra { cursor: default; }
 }
 
 .dia { display: grid; gap: 8px; }
-.dia-titulo { font-size: 14px; color: var(--texto-suave); font-weight: 600; text-transform: capitalize; padding-left: 4px; }
+.dia-titulo { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; color: var(--texto-suave); font-weight: 600; padding: 0 4px; }
+.dia-total { font-weight: 600; white-space: nowrap; }
 
 .vacio { color: var(--texto-suave); text-align: center; padding: 28px 12px; margin: 0; }
 

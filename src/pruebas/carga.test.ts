@@ -124,3 +124,21 @@ describe('borrar un movimiento y deshacer', () => {
     expect(vuelto.actualizadoEn > m.actualizadoEn).toBe(true);
   });
 });
+
+describe('totales de una lista de varios meses', () => {
+  it('suma gastos e ingresos en pesos, sin transferencias ni borrados', async () => {
+    const { totales } = await import('../dominio/calculos');
+    const cuentas = [
+      { id: 'mp', nombre: 'MP', moneda: 'ARS' as const, tipo: 'virtual' as const, saldoInicial: 0, archivada: false, orden: 0, creadoEn: '', actualizadoEn: '' },
+      { id: 'usd', nombre: 'USD', moneda: 'USD' as const, tipo: 'efectivo' as const, saldoInicial: 0, archivada: false, orden: 1, creadoEn: '', actualizadoEn: '' },
+    ];
+    const lista = [
+      mov({ fecha: '2026-09-01', nota: '', monto: 1_000_00 }),
+      mov({ fecha: '2026-10-01', nota: '', monto: 10_00, cuentaId: 'usd', cotizacion: 1500 }),
+      mov({ fecha: '2026-10-02', nota: '', monto: 5_000_00, tipo: 'ingreso' }),
+      mov({ fecha: '2026-10-03', nota: '', monto: 9_999_00, tipo: 'transferencia', cuentaDestinoId: 'usd' }),
+      mov({ fecha: '2026-10-04', nota: '', monto: 7_777_00, borrado: true }),
+    ];
+    expect(totales(lista, cuentas, 1600)).toEqual({ ingresos: 5_000_00, gastos: 1_000_00 + 15_000_00 });
+  });
+});

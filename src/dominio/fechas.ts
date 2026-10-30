@@ -46,6 +46,18 @@ export function nombreDia(fecha: string, referencia: string = hoy()): string {
   return `${DIAS[dia.getDay()]} ${d}`;
 }
 
+/**
+ * "Hoy", "Ayer", "martes 21 de octubre" o, si es de otro año,
+ * "martes 21 de octubre de 2025". Para listas que mezclan meses.
+ */
+export function fechaLarga(fecha: string, referencia: string = hoy()): string {
+  const corto = nombreDia(fecha, referencia);
+  if (corto === 'Hoy' || corto === 'Ayer') return corto;
+  const mes = MESES[Number(fecha.slice(5, 7)) - 1];
+  const anio = fecha.slice(0, 4) === referencia.slice(0, 4) ? '' : ` de ${fecha.slice(0, 4)}`;
+  return `${corto} de ${mes}${anio}`;
+}
+
 /** `AAAA-MM-DD` sumándole n días (n puede ser negativo). */
 export function sumarDias(fecha: string, n: number): string {
   const [a, m, d] = fecha.split('-').map(Number) as [number, number, number];

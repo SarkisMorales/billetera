@@ -121,6 +121,22 @@ export function resumenMes(
   return resumen;
 }
 
+/** Lo que entró y salió en una lista cualquiera de movimientos (de varios meses), en pesos. */
+export function totales(
+  movimientos: Movimiento[],
+  cuentas: Cuenta[],
+  pesosPorDolar: number | null,
+): { ingresos: Centavos; gastos: Centavos } {
+  const porId = new Map(cuentas.map((c) => [c.id, c]));
+  let ingresos = 0;
+  let gastos = 0;
+  for (const m of vivos(movimientos)) {
+    if (m.tipo === 'ingreso') ingresos += enPesos(m, porId, pesosPorDolar);
+    else if (m.tipo === 'gasto') gastos += enPesos(m, porId, pesosPorDolar);
+  }
+  return { ingresos, gastos };
+}
+
 export type NivelPresupuesto = 'ok' | 'cerca' | 'pasado';
 
 export interface EstadoPresupuesto {

@@ -1,5 +1,5 @@
 import { convertir, formatearMonto, leerMonto, montoParaEditar } from '../dominio/dinero';
-import { diaYMes, diasDelMes, diasIncluidos, nombreDia, nombreMes, sumarDias, sumarMeses } from '../dominio/fechas';
+import { diaYMes, diasDelMes, diasIncluidos, fechaLarga, nombreDia, nombreMes, sumarDias, sumarMeses } from '../dominio/fechas';
 import { proyeccionGasto, type ResumenMes } from '../dominio/calculos';
 
 describe('leerMonto', () => {
@@ -64,6 +64,13 @@ describe('fechas', () => {
     expect(diasIncluidos('2026-10-29', '2026-10-31')).toBe(3);
     expect(diasIncluidos('2026-10-31', '2026-10-31')).toBe(1);
     expect(diaYMes('2026-03-07')).toBe('7/3');
+  });
+
+  it('fechaLarga, para listas que mezclan meses', () => {
+    expect(fechaLarga('2026-10-30', '2026-10-30')).toBe('Hoy');
+    expect(fechaLarga('2026-10-29', '2026-10-30')).toBe('Ayer');
+    expect(fechaLarga('2026-09-15', '2026-10-30')).toBe('martes 15 de septiembre');
+    expect(fechaLarga('2025-12-31', '2026-10-30')).toBe('miércoles 31 de diciembre de 2025');
   });
 
   it('nombreDia', () => {

@@ -28,7 +28,7 @@ movimientos, proyectos y notas hay guardados ahí.
 | Pantalla | Qué muestra |
 | --- | --- |
 | Inicio | Patrimonio total en pesos y dólares (con un ojito para ocultar los montos), lo que entró y gastaste en el mes, saldo por cuenta y gasto por categoría con presupuesto. |
-| Movimientos | Mes por mes, agrupado por día, con buscador y filtro por cuenta y categoría. Tocás uno para editarlo o borrarlo. |
+| Movimientos | Mes por mes, agrupado por día con lo gastado ese día, y filtro por cuenta y categoría. El buscador busca en **todos los meses**, sin importar acentos, por nota, categoría, cuenta o monto exacto ("2500"). Si cargaste algo con fecha futura, se puede ir hasta ese mes. Tocás uno para editarlo o borrarlo. |
 | Reportes | Cruza cuentas, categorías, movimientos, dólar e inflación, y muestra la inflación mes a mes. Ver abajo. |
 | Proyectos | Proyectos con presupuesto, objetivos y notas propias; y aparte, Notas sueltas estilo Todoist. Ver abajo. |
 | Ajustes | Dólar de referencia, cuentas, categorías y presupuestos, Archivos y Transferencias, tema. |
