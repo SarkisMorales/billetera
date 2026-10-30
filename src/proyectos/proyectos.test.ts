@@ -209,7 +209,7 @@ describe('proyectos y notas en Archivos y Transferencias', () => {
     await proyectos.crearObjetivo(p.id, { texto: 'Seguro', monto: 500_00 });
     await proyectos.crearNota({ texto: 'Idea', etiquetas: ['x'], fecha: '2026-11-15', prioridad: 1 });
     const archivo = JSON.parse(JSON.stringify(await exportar(db)));
-    expect(archivo.version).toBe(2);
+    expect(archivo.version).toBe(3);
     const antes = { p: await db.proyectos.toArray(), o: await db.objetivos.toArray(), n: await db.notas.toArray() };
     await borrarTodo(db);
     expect(await db.notas.count()).toBe(0);
@@ -241,7 +241,7 @@ describe('proyectos y notas en Archivos y Transferencias', () => {
 });
 
 describe('actualizar la base del teléfono', () => {
-  it('una billetera con la base vieja (versión 1) pasa a la 2 sin perder nada', async () => {
+  it('una billetera con la base vieja (versión 1) pasa a la actual sin perder nada', async () => {
     const nombre = 'billetera-vieja';
     const vieja = new Dexie(nombre);
     vieja.version(1).stores({
@@ -257,7 +257,7 @@ describe('actualizar la base del teléfono', () => {
     const nueva = new BilleteraDB(nombre);
     expect((await nueva.cuentas.toArray()).map((c) => c.nombre)).toEqual(['Mercado Pago']);
     expect(await nueva.movimientos.count()).toBe(1);
-    expect(nueva.verno).toBe(2);
+    expect(nueva.verno).toBe(3);
     const proyectos = new RepositorioProyectos(nueva);
     await proyectos.crearNota({ texto: 'Primera nota' });
     expect(await nueva.notas.count()).toBe(1);

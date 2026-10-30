@@ -10,6 +10,8 @@ import { aprenderNotas, coincidencia, frecuentes, posibleDuplicado, sugerir, typ
 import type { Movimiento, TipoMovimiento } from '../dominio/tipos';
 import type { DatosMovimiento } from '../dominio/validar';
 import type { Billetera } from '../estado/useBilletera';
+import { repoFijos } from '../fijos/repositorio';
+import { FRECUENCIAS, type Fijo } from '../fijos/tipos';
 
 const CLAVE_ULTIMA_CUENTA = 'billetera.ultimaCuenta';
 
@@ -41,6 +43,7 @@ export function FormMovimiento({
   billetera,
   existente,
   inicial,
+  esFijo = false,
   alCerrar,
   alGuardar,
   alBorrar,
@@ -49,8 +52,11 @@ export function FormMovimiento({
   existente: Movimiento | null;
   /** Para uno nuevo que viene armado (por ejemplo, un gasto fijo para confirmar). */
   inicial?: Partial<DatosMovimiento>;
+  /** Viene de confirmar un gasto fijo: no se ofrece "Se repite" (ya se repite). */
+  esFijo?: boolean;
   alCerrar: () => void;
-  alGuardar: (m: Movimiento, esNuevo: boolean) => void;
+  /** `fijoNuevo`: si tocaste "Se repite", el fijo que se creó (para que "Deshacer" también lo saque). */
+  alGuardar: (m: Movimiento, esNuevo: boolean, fijoNuevo?: Fijo) => void;
   alBorrar: (m: Movimiento) => void;
 }) {
   const { cuentas, categorias, movimientos, ajustes } = billetera;
@@ -79,6 +85,8 @@ export function FormMovimiento({
   const [nota, setNota] = useState(base?.nota ?? '');
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  /** "Se repite": cada cuántos meses, o null si no se repite. */
+  const [repetir, setRepetir] = useState<number | null>(null);
   /** El duplicado que ya te mostramos: si guardás de nuevo con lo mismo, va. */
   const [duplicadoVisto, setDuplicadoVisto] = useState<string | null>(null);
 
@@ -129,6 +137,7 @@ export function FormMovimiento({
         )
       : undefined;
   const avisarDuplicado = duplicado && duplicadoVisto === claveDuplicado;
+  const puedeRepetir = !existente && !esFijo && tipo !== 'transferencia';
 
   /** Si hay algo escrito que se perdería al cerrar. */
   const sinCambios = existente
@@ -205,7 +214,8 @@ export function FormMovimiento({
         ? await repositorio.editarMovimiento(existente.id, datos)
         : await repositorio.crearMovimiento(datos);
       recordarCuenta(cuentaId);
-      alGuardar(m, !existente);
+      const fijoNuevo = puedeRepetir && repetir ? await repoFijos.crearDesdeMovimiento(m, repetir) : undefined;
+      alGuardar(m, !existente, fijoNuevo);
     } catch (e) {
       if (e instanceof ErrorDeValidacion) setError(e.message);
       else throw e;
@@ -452,6 +462,35 @@ export function FormMovimiento({
             <small className="ayuda aviso-fecha">⚠️ Es una fecha futura ({diaYMes(fecha)}): el saldo ya lo descuenta desde hoy.</small>
           )}
         </fieldset>
+
+        {puedeRepetir && (
+          <fieldset className="grupo">
+            <legend className="sr-solo">Se repite</legend>
+            <button type="button" className="ficha repetir" aria-pressed={repetir !== null} onClick={() => setRepetir(repetir ? null : 1)}>
+              🔁 {repetir ? 'Se repite' : '¿Se repite? (alquiler, servicios, suscripciones…)'}
+            </button>
+            {repetir !== null && (
+              <>
+                <div className="fichas">
+                  {FRECUENCIAS.map((f) => (
+                    <button
+                      key={f.cadaMeses}
+                      type="button"
+                      className="ficha"
+                      aria-pressed={repetir === f.cadaMeses}
+                      onClick={() => setRepetir(f.cadaMeses)}
+                    >
+                      {f.nombre}
+                    </button>
+                  ))}
+                </div>
+                <small className="ayuda">
+                  Cuando vuelva a vencer aparece en el Inicio para confirmarlo con un toque. Nunca se carga solo.
+                </small>
+              </>
+            )}
+          </fieldset>
+        )}
 
         {origen?.moneda === 'USD' && tipo !== 'transferencia' && (
           <p className="ayuda">

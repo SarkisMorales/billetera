@@ -1,0 +1,39 @@
+/* Gastos fijos: Inicio y Ajustes. Mismas tarjetas blancas que el resto. */
+
+.fijos-falta { font-size: 14px; font-weight: 600; color: var(--texto-suave); white-space: nowrap; }
+
+.fijos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--superficie);
+  border: 1px solid var(--borde-tarjeta);
+  border-radius: var(--r);
+  box-shadow: var(--sombra);
+  overflow: hidden;
+}
+.fijo { display: grid; gap: 10px; padding: 14px 16px; }
+.fijo + .fijo { border-top: 1px solid var(--borde-tarjeta); }
+.fijo-arriba { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.fijo-icono {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--acento-suave);
+  font-size: 19px;
+}
+.fijo-texto { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.fijo-nota { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fijo-vence { font-size: 13px; color: var(--texto-suave); }
+.fijo-vence.vencido { color: var(--ambar); font-weight: 600; }
+.fijo-monto { flex: none; font-weight: 700; }
+.fijo-acciones { display: flex; gap: 8px; padding-left: 52px; }
+.fijos-proximos { margin: 0; font-size: 14px; color: var(--texto-suave); line-height: 1.5; }
+.fijos-proximos strong { color: var(--texto); font-weight: 600; }
+
+/* Ajustes → Gastos fijos */
+.fijo-fila.pausado { opacity: .55; }
+.fijo-dia { width: 116px; flex: none; }

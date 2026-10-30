@@ -1,5 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie';
 import type { Ajustes, Categoria, Cuenta, Movimiento } from '../dominio/tipos';
+import type { Fijo } from '../fijos/tipos';
 import type { Nota, Objetivo, Proyecto } from '../proyectos/tipos';
 
 export class BilleteraDB extends Dexie {
@@ -10,6 +11,7 @@ export class BilleteraDB extends Dexie {
   proyectos!: EntityTable<Proyecto, 'id'>;
   objetivos!: EntityTable<Objetivo, 'id'>;
   notas!: EntityTable<Nota, 'id'>;
+  fijos!: EntityTable<Fijo, 'id'>;
 
   constructor(nombre = 'billetera') {
     super(nombre);
@@ -27,6 +29,10 @@ export class BilleteraDB extends Dexie {
       proyectos: 'id, orden',
       objetivos: 'id, proyectoId',
       notas: 'id, proyectoId',
+    });
+    // Versión 3: gastos e ingresos fijos. También sólo agrega.
+    this.version(3).stores({
+      fijos: 'id, proxima',
     });
   }
 }

@@ -1,14 +1,15 @@
 import type { BilleteraDB } from './db';
 import { db as dbPorDefecto } from './db';
 import type { Ajustes, Categoria, Cuenta, Movimiento } from '../dominio/tipos';
+import type { Fijo } from '../fijos/tipos';
 import type { Nota, Objetivo, Proyecto } from '../proyectos/tipos';
 
 /**
- * 2: suma proyectos, objetivos y notas. Una app vieja rechaza un archivo 2
- * en vez de cargarlo y perder las notas sin avisar. Los archivos 1 se siguen
- * cargando.
+ * 2: suma proyectos, objetivos y notas. 3: suma los gastos fijos. Una app
+ * vieja rechaza un archivo más nuevo en vez de cargarlo y perder lo que no
+ * conoce sin avisar. Los archivos viejos se siguen cargando.
  */
-export const VERSION_RESPALDO = 2;
+export const VERSION_RESPALDO = 3;
 
 export interface Respaldo {
   version: number;
@@ -22,10 +23,12 @@ export interface Respaldo {
   proyectos?: Proyecto[];
   objetivos?: Objetivo[];
   notas?: Nota[];
+  /** Desde la versión 3. */
+  fijos?: Fijo[];
 }
 
 /** Las tablas de Proyectos y Notas, para las transacciones. */
-const tablasProyectos = (db: BilleteraDB) => [db.proyectos, db.objetivos, db.notas];
+const tablasProyectos = (db: BilleteraDB) => [db.proyectos, db.objetivos, db.notas, db.fijos];
 
 export interface ResumenImportacion {
   nuevos: number;
@@ -34,7 +37,7 @@ export interface ResumenImportacion {
 }
 
 export async function exportar(db: BilleteraDB = dbPorDefecto): Promise<Respaldo> {
-  const [cuentas, categorias, movimientos, ajustes, proyectos, objetivos, notas] = await Promise.all([
+  const [cuentas, categorias, movimientos, ajustes, proyectos, objetivos, notas, fijos] = await Promise.all([
     db.cuentas.toArray(),
     db.categorias.toArray(),
     db.movimientos.toArray(),
@@ -42,6 +45,7 @@ export async function exportar(db: BilleteraDB = dbPorDefecto): Promise<Respaldo
     db.proyectos.toArray(),
     db.objetivos.toArray(),
     db.notas.toArray(),
+    db.fijos.toArray(),
   ]);
   return {
     version: VERSION_RESPALDO,
@@ -54,6 +58,7 @@ export async function exportar(db: BilleteraDB = dbPorDefecto): Promise<Respaldo
     proyectos,
     objetivos,
     notas,
+    fijos,
   };
 }
 
@@ -100,6 +105,7 @@ export async function importar(
     await fusionar<Proyecto>(db.proyectos, respaldo.proyectos ?? []);
     await fusionar<Objetivo>(db.objetivos, respaldo.objetivos ?? []);
     await fusionar<Nota>(db.notas, respaldo.notas ?? []);
+    await fusionar<Fijo>(db.fijos, respaldo.fijos ?? []);
     if (respaldo.ajustes && !(await db.ajustes.get('unico'))) {
       await db.ajustes.put(respaldo.ajustes);
     }
@@ -151,6 +157,12 @@ function notaValida(n: Partial<Nota>): boolean {
     [1, 2, 3].includes(n.prioridad as number) && esTexto(n.actualizadoEn);
 }
 
+function fijoValido(f: Partial<Fijo>): boolean {
+  return esTexto(f.id) && (f.tipo === 'gasto' || f.tipo === 'ingreso') && esTexto(f.nota) && esEntero(f.monto) &&
+    esTexto(f.cuentaId) && esTexto(f.categoriaId) && esEntero(f.dia) && f.dia! >= 1 && f.dia! <= 31 &&
+    esEntero(f.cadaMeses) && esTexto(f.proxima) && /^\d{4}-\d{2}-\d{2}$/.test(f.proxima!) && esTexto(f.actualizadoEn);
+}
+
 /** Una lista opcional: si no está, undefined; si está, tiene que ser válida entera. */
 function listaOpcional<T>(x: unknown, valido: (y: Partial<T>) => boolean): T[] | undefined | false {
   if (x === undefined) return undefined;
@@ -174,9 +186,10 @@ function validarRespaldo(datos: unknown): Respaldo {
   const proyectos = listaOpcional<Proyecto>(r.proyectos, proyectoValido);
   const objetivos = listaOpcional<Objetivo>(r.objetivos, objetivoValido);
   const notas = listaOpcional<Nota>(r.notas, notaValida);
+  const fijos = listaOpcional<Fijo>(r.fijos, fijoValido);
   if (
     !r.cuentas.every(cuentaValida) || !r.categorias.every(categoriaValida) || !r.movimientos.every(movimientoValido) ||
-    proyectos === false || objetivos === false || notas === false
+    proyectos === false || objetivos === false || notas === false || fijos === false
   ) {
     throw new Error('El archivo está dañado: tiene registros incompletos. No se cargó nada.');
   }
@@ -192,6 +205,7 @@ function validarRespaldo(datos: unknown): Respaldo {
     ...(proyectos || objetivos || notas
       ? { proyectos: proyectos ?? [], objetivos: objetivos ?? [], notas: notas ?? [] }
       : {}),
+    ...(fijos ? { fijos } : {}),
   };
 }
 
@@ -250,8 +264,9 @@ export async function contenidoLocal(
  * billetera a otro teléfono: las cuentas y categorías de ejemplo de una
  * billetera nueva no se mezclan con las del archivo.
  *
- * Un archivo viejo (versión 1) no trae proyectos ni notas: no dice nada de
- * ellos, así que los de esta billetera se quedan como están.
+ * Un archivo viejo (versión 1) no trae proyectos ni notas, y uno de la
+ * versión 2 no trae gastos fijos: no dice nada de ellos, así que los de esta
+ * billetera se quedan como están.
  *
  * Todo en una transacción: si algo falla, queda como estaba.
  */
@@ -271,6 +286,10 @@ export async function reemplazar(datos: unknown, db: BilleteraDB = dbPorDefecto)
       await db.objetivos.bulkPut(r.objetivos);
       await db.notas.bulkPut(r.notas);
     }
+    if (r.fijos) {
+      await db.fijos.clear();
+      await db.fijos.bulkPut(r.fijos);
+    }
   });
   return contenido(r);
 }
@@ -286,6 +305,7 @@ export async function borrarTodo(db: BilleteraDB = dbPorDefecto): Promise<void> 
       db.proyectos.clear(),
       db.objetivos.clear(),
       db.notas.clear(),
+      db.fijos.clear(),
     ]);
   });
 }

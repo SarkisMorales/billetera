@@ -11,6 +11,9 @@ import { formatearMonto } from '../dominio/dinero';
 import { diasEntre, diaYMes, hoy, mesDe, nombreMes } from '../dominio/fechas';
 import { NOMBRE_CASA, type Cuenta } from '../dominio/tipos';
 import type { Billetera } from '../estado/useBilletera';
+import { TarjetaFijos } from '../fijos/TarjetaFijos';
+import type { Fijo } from '../fijos/tipos';
+import { useFijos } from '../fijos/useFijos';
 
 const ICONO_CUENTA: Record<Cuenta['tipo'], string> = {
   efectivo: '💵',
@@ -45,12 +48,17 @@ export function Inicio({
   enLinea,
   irAMovimientos,
   irAAjustes,
+  alCargarFijo,
+  alSaltearFijo,
 }: {
   billetera: Billetera;
   enLinea: boolean;
   irAMovimientos: (categoriaId: string | null) => void;
   irAAjustes: () => void;
+  alCargarFijo: (f: Fijo) => void;
+  alSaltearFijo: (f: Fijo) => void;
 }) {
+  const fijos = useFijos();
   const { cuentas, categorias, movimientos, ajustes } = billetera;
   const [oculto, setOculto] = useState(leerOculto);
   const cotizacion = cotizacionVigente(ajustes);
@@ -150,6 +158,16 @@ export function Inicio({
           )}
         </button>
       </section>
+
+      <TarjetaFijos
+        fijos={fijos}
+        cuentas={cuentas}
+        categorias={categorias}
+        cotizacion={cotizacion}
+        oculto={oculto}
+        alCargar={alCargarFijo}
+        alSaltear={alSaltearFijo}
+      />
 
       <section className="bloque">
         <h2 className="bloque-titulo">Cuentas</h2>

@@ -51,6 +51,31 @@ El botón **+** carga un gasto, un ingreso o una transferencia. Recuerda la
 Nada de esto se guarda aparte: las sugerencias se calculan de tus
 movimientos (`src/dominio/sugerencias.ts`, `src/dominio/calculadora.ts`).
 
+## Gastos e ingresos fijos
+
+Alquiler, servicios, suscripciones, el sueldo. Módulo aparte
+(`src/fijos/`), con tabla propia (versión 3 de la base).
+
+- **Se crean** tocando "🔁 ¿Se repite?" al cargar un gasto o ingreso (el
+  que cargaste cuenta como el de este mes) o desde Ajustes → Gastos e
+  ingresos fijos.
+- **Nunca se cargan solos**: con inflación el monto cambia. Cuando vencen,
+  aparecen en el Inicio, en "Gastos fijos":
+  - **Cargar pago** abre la carga con todo completo (monto, cuenta,
+    categoría, nota y la fecha del vencimiento) para corregir lo que haga
+    falta. Al guardar pasa al próximo vencimiento y se queda con el monto
+    que cargaste como referencia.
+  - **Saltear**: ese vencimiento no corresponde; pasa al siguiente.
+  - Los dos tienen "Deshacer".
+- Arriba dice cuánto **falta pagar este mes** de gastos fijos (los de
+  cuentas en dólares, a la cotización de hoy) y abajo los de los **próximos
+  7 días**. El ojito de la tarjeta azul también tapa estos montos.
+- Frecuencia: todos los meses, cada 2, 3 o 6 meses o una vez por año. Si
+  vence el 31 y el mes tiene 30 días, vence el 30 (y el mes que viene vuelve
+  al 31).
+- En Ajustes se cambian, se **pausan** (no aparecen para confirmar) o se
+  dejan de repetir.
+
 ## Reglas de plata
 
 | Regla | Por qué |

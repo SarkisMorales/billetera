@@ -7,7 +7,10 @@ import { pedirAlmacenamientoPersistente } from './datos/db';
 import { repositorio } from './datos/repositorio';
 import { hoy, mesDe } from './dominio/fechas';
 import type { Movimiento } from './dominio/tipos';
+import type { DatosMovimiento } from './dominio/validar';
 import { useBilletera } from './estado/useBilletera';
+import { repoFijos } from './fijos/repositorio';
+import type { Fijo } from './fijos/tipos';
 import { Ajustes } from './pantallas/Ajustes';
 import { Inicio } from './pantallas/Inicio';
 import { Movimientos } from './pantallas/Movimientos';
@@ -53,7 +56,12 @@ export function App() {
   const [pantalla, setPantalla] = useState<IdPantalla>('inicio');
   const [mes, setMes] = useState(mesDe(hoy()));
   const [filtroCategoria, setFiltroCategoria] = useState<string | null>(null);
-  const [formulario, setFormulario] = useState<{ existente: Movimiento | null } | null>(null);
+  const [formulario, setFormulario] = useState<{
+    existente: Movimiento | null;
+    /** Uno nuevo que viene armado: un gasto fijo para confirmar. */
+    inicial?: Partial<DatosMovimiento>;
+    fijo?: Fijo;
+  } | null>(null);
   const [aviso, setAviso] = useState<Aviso | null>(null);
   const [enLinea, setEnLinea] = useState(navigator.onLine);
   const [ofrecerBackup, setOfrecerBackup] = useState(false);
@@ -115,17 +123,43 @@ export function App() {
     window.scrollTo(0, 0);
   }
 
+  const fijoEnCurso = formulario?.fijo;
+
   const alGuardar = useCallback(
-    (m: Movimiento, esNuevo: boolean) => {
+    async (m: Movimiento, esNuevo: boolean, fijoNuevo?: Fijo) => {
       setFormulario(null);
-      if (esNuevo) {
-        avisar(GUARDADO[m.tipo], () => {
+      if (esNuevo && fijoEnCurso) {
+        // Confirmaste un gasto fijo: pasa al próximo vencimiento con lo que pagaste.
+        const antes = await repoFijos.confirmar(fijoEnCurso.id, m.monto);
+        avisar(`${fijoEnCurso.nota}: cargado`, () => {
           repositorio.borrarMovimiento(m.id);
-          setAviso(null);
+          repoFijos.restaurar(antes);
+        });
+      } else if (esNuevo) {
+        avisar(fijoNuevo ? `${GUARDADO[m.tipo]} · se repite` : GUARDADO[m.tipo], () => {
+          repositorio.borrarMovimiento(m.id);
+          if (fijoNuevo) repoFijos.borrarFijo(fijoNuevo.id);
         });
       } else {
         avisar('Cambios guardados');
       }
+    },
+    [avisar, fijoEnCurso],
+  );
+
+  const cargarFijo = useCallback((f: Fijo) => {
+    setAviso(null);
+    setFormulario({
+      existente: null,
+      inicial: { tipo: f.tipo, monto: f.monto, cuentaId: f.cuentaId, categoriaId: f.categoriaId, nota: f.nota, fecha: f.proxima },
+      fijo: f,
+    });
+  }, []);
+
+  const saltearFijo = useCallback(
+    async (f: Fijo) => {
+      const antes = await repoFijos.saltear(f.id);
+      avisar(`${f.nota}: salteado este vencimiento`, () => repoFijos.restaurar(antes));
     },
     [avisar],
   );
@@ -184,6 +218,8 @@ export function App() {
               irA('movimientos');
             }}
             irAAjustes={() => irA('ajustes')}
+            alCargarFijo={cargarFijo}
+            alSaltearFijo={saltearFijo}
           />
         ) : pantalla === 'movimientos' ? (
           <Movimientos
@@ -259,6 +295,8 @@ export function App() {
         <FormMovimiento
           billetera={billetera}
           existente={formulario.existente}
+          inicial={formulario.inicial}
+          esFijo={Boolean(formulario.fijo)}
           alCerrar={cerrarFormulario}
           alGuardar={alGuardar}
           alBorrar={alBorrar}

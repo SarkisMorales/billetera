@@ -12,6 +12,7 @@ import { diaYMes, hoy } from '../dominio/fechas';
 import { formatearMonto } from '../dominio/dinero';
 import { NOMBRE_CASA, type Categoria, type Cuenta, type Tema, type TipoCategoria } from '../dominio/tipos';
 import type { Billetera } from '../estado/useBilletera';
+import { SeccionFijos } from '../fijos/SeccionFijos';
 
 type Editando =
   | { que: 'cuenta'; cuenta: Cuenta | null }
@@ -34,7 +35,7 @@ export function Ajustes({
 }: {
   billetera: Billetera;
   enLinea: boolean;
-  avisar: (texto: string) => void;
+  avisar: (texto: string, deshacer?: () => void) => void;
 }) {
   const { cuentas, categorias, movimientos, ajustes } = billetera;
   const [editando, setEditando] = useState<Editando>(null);
@@ -207,6 +208,8 @@ export function Ajustes({
           </div>
         </section>
       ))}
+
+      <SeccionFijos cuentas={cuentas} categorias={categorias} avisar={avisar} />
 
       <ArchivosTransferencias
         ultimoGuardado={ajustes.ultimoBackup}

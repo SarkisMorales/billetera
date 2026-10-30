@@ -638,6 +638,24 @@ div.barra { cursor: default; }
 }
 .campo input:focus { outline: 2px solid var(--acento); outline-offset: -1px; border-color: transparent; }
 .campo input[type='date'] { -webkit-appearance: none; appearance: none; }
+.campo select {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 12px 34px 12px 14px;
+  background: var(--superficie);
+  border: 1px solid var(--borde-tarjeta);
+  border-radius: var(--r-chico);
+  box-shadow: 0 1px 2px rgb(16 24 40 / 0.04);
+  -webkit-appearance: none;
+  appearance: none;
+  text-overflow: ellipsis;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23697489' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
+.campo select:focus { outline: 2px solid var(--acento); outline-offset: -1px; border-color: transparent; }
+.ficha.repetir { flex-direction: row; justify-self: start; }
 .emoji-campo { width: 76px; }
 .emoji-campo input { text-align: center; font-size: 22px; padding: 6px; }
 
