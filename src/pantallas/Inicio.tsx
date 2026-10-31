@@ -140,42 +140,43 @@ export function Inicio({
           {p.totalEnDolares !== null &&
             `≈ ${oculto ? 'US$ ••••' : formatearMonto(p.totalEnDolares, 'USD', { sinDecimales: true })}`}
         </span>
-        <div className="total-division">
-          <div>
-            <span className="rotulo">Entró en {nombreMes(mes).split(' ')[0]!.toLowerCase()}</span>
-            <span className="total-mes">{oculto ? '••••' : formatearMonto(resumen.ingresos, 'ARS', { sinDecimales: true })}</span>
+        <div className={`total-caja${libre && libre.libre <= 0 ? ' pasado' : ''}`}>
+          <div className="total-division">
+            <div>
+              <span className="rotulo">Entró en {nombreMes(mes).split(' ')[0]!.toLowerCase()}</span>
+              <span className="total-mes">{oculto ? '••••' : formatearMonto(resumen.ingresos, 'ARS', { sinDecimales: true })}</span>
+            </div>
+            <div>
+              <span className="rotulo">Gastaste</span>
+              <span className="total-mes">{oculto ? '••••' : formatearMonto(resumen.gastos, 'ARS', { sinDecimales: true })}</span>
+            </div>
           </div>
-          <div>
-            <span className="rotulo">Gastaste</span>
-            <span className="total-mes">{oculto ? '••••' : formatearMonto(resumen.gastos, 'ARS', { sinDecimales: true })}</span>
-          </div>
+          {libre && (
+            <p className="total-libre">
+              <span>
+                {oculto ? (
+                  'Te quedan •••• para el mes'
+                ) : libre.libre > 0 ? (
+                  <>
+                    Te quedan <strong className="num">{pesos(libre.libre)}</strong> para el mes
+                  </>
+                ) : resumen.gastos > resumen.ingresos ? (
+                  <>
+                    ⚠️ Gastaste <strong className="num">{pesos(resumen.gastos - resumen.ingresos)}</strong> más de lo que entró
+                  </>
+                ) : (
+                  <>
+                    ⚠️ Con los fijos que faltan, te faltan <strong className="num">{pesos(-libre.libre)}</strong> para cerrar el
+                    mes
+                  </>
+                )}
+              </span>
+              <small>
+                Lo que entró, menos lo gastado{falta.cuantos > 0 ? ' y los fijos que faltan' : ''}.
+              </small>
+            </p>
+          )}
         </div>
-        {libre && (
-          <p className={`total-libre${libre.libre <= 0 ? ' pasado' : ''}`}>
-            <span>
-              {oculto ? (
-                'Te quedan •••• para el mes'
-              ) : libre.libre > 0 ? (
-                <>
-                  Te quedan <strong className="num">{pesos(libre.libre)}</strong> para el mes ·{' '}
-                  <strong className="num">{pesos(libre.porDia)}</strong> por día
-                </>
-              ) : resumen.gastos > resumen.ingresos ? (
-                <>
-                  ⚠️ Gastaste <strong className="num">{pesos(resumen.gastos - resumen.ingresos)}</strong> más de lo que entró
-                </>
-              ) : (
-                <>
-                  ⚠️ Con los fijos que faltan, te faltan <strong className="num">{pesos(-libre.libre)}</strong> para cerrar el
-                  mes
-                </>
-              )}
-            </span>
-            <small>
-              Lo que entró, menos lo gastado{falta.cuantos > 0 ? ' y los fijos que faltan' : ''}.
-            </small>
-          </p>
-        )}
         <button type="button" className="cotizacion" onClick={irAAjustes}>
           {cotizacion ? (
             <>
