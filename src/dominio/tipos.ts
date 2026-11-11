@@ -122,6 +122,11 @@ export interface Ajustes {
    * mensuales, para no ofrecer subirlos dos veces con el mismo dato.
    */
   topesAjustadosHasta?: string | null;
+  /**
+   * Día en que arranca la semana para "Gastaste esta semana": 0 domingo,
+   * 1 lunes … 6 sábado. Opcional: sin él, lunes.
+   */
+  inicioSemana?: number;
 }
 
 export const AJUSTES_POR_DEFECTO: Ajustes = {

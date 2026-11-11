@@ -14,6 +14,7 @@ import { NOMBRE_CASA, type Categoria, type Cuenta, type Tema, type TipoCategoria
 import type { Billetera } from '../estado/useBilletera';
 import { SeccionFijos } from '../fijos/SeccionFijos';
 import { TopesInflacion } from '../inflacion/TopesInflacion';
+import { AjusteSemana } from '../semana/AjusteSemana';
 
 type Editando =
   | { que: 'cuenta'; cuenta: Cuenta | null }
@@ -218,6 +219,8 @@ export function Ajustes({
         movimientosAhora={movimientos.length}
         avisar={avisar}
       />
+
+      <AjusteSemana inicioSemana={ajustes.inicioSemana} />
 
       <section className="bloque">
         <h2 className="bloque-titulo">Apariencia</h2>

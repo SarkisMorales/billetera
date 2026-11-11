@@ -1,0 +1,72 @@
+/* Inicio → "Gastaste esta semana". Tarjeta blanca como las demás, con una onda azul de adorno. */
+
+.semana {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  background: var(--superficie);
+  border: 1px solid var(--borde-tarjeta);
+  border-radius: var(--r);
+  box-shadow: var(--sombra);
+}
+.semana-icono {
+  flex: none;
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--acento-suave);
+  color: var(--acento);
+  margin-right: 2px;
+}
+.semana-texto {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+  padding: 0 30px 0 14px; /* a la derecha, lugar para la flechita */
+  border-left: 1px solid var(--borde); /* la rayita entre el ícono y el texto */
+}
+.semana-titulo { font-size: 16px; font-weight: 600; }
+.semana-monto {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  padding: 3px 14px;
+  border-radius: 99px;
+  background: var(--acento-suave);
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.semana-rango { font-size: 13px; color: var(--texto-suave); }
+.semana-onda {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 46%;
+  height: 72%;
+  fill: var(--acento);
+  opacity: 0.1;
+  pointer-events: none;
+}
+.semana-flecha {
+  position: absolute;
+  right: 16px;
+  bottom: 14px;
+  color: var(--acento);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+/* Ajustes → Semana: siete días en una fila. */
+.semana-dias button { padding-left: 0; padding-right: 0; min-width: 0; }

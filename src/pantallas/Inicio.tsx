@@ -16,6 +16,7 @@ import { faltaPagarEsteMes } from '../fijos/calculos';
 import { TarjetaFijos } from '../fijos/TarjetaFijos';
 import type { Fijo } from '../fijos/tipos';
 import { useFijos } from '../fijos/useFijos';
+import { TarjetaSemana } from '../semana/TarjetaSemana';
 
 const ICONO_CUENTA: Record<Cuenta['tipo'], string> = {
   efectivo: '💵',
@@ -193,6 +194,15 @@ export function Inicio({
           )}
         </button>
       </section>
+
+      <TarjetaSemana
+        movimientos={movimientos}
+        cuentas={cuentas}
+        cotizacion={cotizacion}
+        hoy={hoyStr}
+        inicioSemana={ajustes.inicioSemana}
+        oculto={oculto}
+      />
 
       <TarjetaFijos
         fijos={fijos}
