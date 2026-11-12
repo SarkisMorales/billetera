@@ -3,13 +3,14 @@ import { useMemo, useState, type CSSProperties } from 'react';
 import { ArchivosTransferencias } from '../componentes/ArchivosTransferencias';
 import { colorCategoria } from '../componentes/colores';
 import { EditorCategoria, EditorCuenta } from '../componentes/Editores';
+import { montoEnVivo } from '../componentes/montoEnVivo';
 import { NOMBRE_DONDE, dondeCorre } from '../datos/actualizacion';
 import { actualizarCotizaciones } from '../datos/cotizacion';
 import { repositorio } from '../datos/repositorio';
 import { borrarTodo, contenidoLocal } from '../datos/respaldo';
 import { saldos, tienePeriodo } from '../dominio/calculos';
 import { diaYMes, hoy } from '../dominio/fechas';
-import { formatearMonto } from '../dominio/dinero';
+import { cotizacionParaEditar, formatearMonto, leerCotizacion } from '../dominio/dinero';
 import { NOMBRE_CASA, type Categoria, type Cuenta, type Tema, type TipoCategoria } from '../dominio/tipos';
 import type { Billetera } from '../estado/useBilletera';
 import { SeccionFijos } from '../fijos/SeccionFijos';
@@ -43,7 +44,7 @@ export function Ajustes({
   const [editando, setEditando] = useState<Editando>(null);
   const hoyStr = hoy();
   const [bajando, setBajando] = useState(false);
-  const [manualTexto, setManualTexto] = useState(ajustes.cotizacionManual?.toString() ?? '');
+  const [manualTexto, setManualTexto] = useState(cotizacionParaEditar(ajustes.cotizacionManual));
   const s = useMemo(() => saldos(cuentas, movimientos), [cuentas, movimientos]);
   const guardado = useLiveQuery(() => contenidoLocal(), []);
 
@@ -64,9 +65,15 @@ export function Ajustes({
   }
 
   async function guardarManual() {
-    const valor = Number(manualTexto.replace(/\./g, '').replace(',', '.'));
-    await repositorio.guardarAjustes({ cotizacionManual: manualTexto.trim() && valor > 0 ? valor : null });
-    avisar(manualTexto.trim() ? 'Cotización manual guardada' : 'Se usa la cotización de internet');
+    const vacio = manualTexto.trim() === '';
+    const valor = leerCotizacion(manualTexto);
+    // Algo escrito que no es un número: no se toca lo guardado.
+    if (!vacio && valor === null) {
+      avisar('Esa cotización no es un número válido');
+      return;
+    }
+    await repositorio.guardarAjustes({ cotizacionManual: valor });
+    avisar(vacio ? 'Se usa la cotización de internet' : 'Cotización manual guardada');
   }
 
   async function borrar() {
@@ -123,7 +130,7 @@ export function Ajustes({
               inputMode="decimal"
               placeholder="Vacío = usar internet"
               value={manualTexto}
-              onChange={(e) => setManualTexto(e.target.value)}
+              onChange={(e) => setManualTexto(montoEnVivo(e.target.value))}
             />
           </label>
           <button type="button" className="btn alinear-abajo" onClick={guardarManual}>

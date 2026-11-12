@@ -1,4 +1,4 @@
-import { convertir, formatearMonto, leerMonto, montoParaEditar } from '../dominio/dinero';
+import { convertir, cotizacionParaEditar, formatearMonto, leerCotizacion, leerMonto, montoParaEditar } from '../dominio/dinero';
 import { diaYMes, diasDelMes, diasIncluidos, fechaLarga, nombreDia, nombreMes, sumarDias, sumarMeses } from '../dominio/fechas';
 import { proyeccionGasto, type ResumenMes } from '../dominio/calculos';
 
@@ -91,5 +91,28 @@ describe('proyeccionGasto', () => {
 
   it('proyecta lineal al resto del mes', () => {
     expect(proyeccionGasto(resumen, 10)).toBe(310_000_00);
+  });
+});
+
+describe('cotización manual', () => {
+  it.each([
+    ['1450', 1450],
+    ['1.450', 1450],
+    ['1.450,50', 1450.5],
+    ['1450,5', 1450.5],
+    // Antes daba 14.505: se sacaban todos los puntos.
+    ['1450.5', 1450.5],
+    ['', null],
+    ['abc', null],
+    ['0', null],
+  ])('"%s" → %s', (texto, esperado) => {
+    expect(leerCotizacion(texto)).toBe(esperado);
+  });
+
+  it('se precarga con coma decimal y vuelve a leerse igual', () => {
+    expect(cotizacionParaEditar(1450.5)).toBe('1.450,50');
+    expect(cotizacionParaEditar(1450)).toBe('1.450');
+    expect(cotizacionParaEditar(null)).toBe('');
+    for (const v of [1450.5, 1450, 987.25, 12345.67]) expect(leerCotizacion(cotizacionParaEditar(v))).toBe(v);
   });
 });

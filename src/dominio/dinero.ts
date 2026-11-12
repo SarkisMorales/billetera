@@ -85,3 +85,22 @@ export function convertir(
     ? Math.round(centavos * pesosPorDolar)
     : Math.round(centavos / pesosPorDolar);
 }
+
+/**
+ * La cotización manual (pesos por dólar), escrita como un monto: "1.450",
+ * "1450,50" o "1450.5". Null si no es un número positivo. Antes se le
+ * sacaban todos los puntos y "1450.5" quedaba en 14.505.
+ */
+export function leerCotizacion(texto: string): number | null {
+  const centavos = leerMonto(texto);
+  return centavos === null ? null : centavos / 100;
+}
+
+/** Para precargar el campo de la cotización manual: 1450.5 → "1.450,50". */
+export function cotizacionParaEditar(pesosPorDolar: number | null): string {
+  if (!pesosPorDolar) return '';
+  const centavos = Math.round(pesosPorDolar * 100);
+  const entero = Math.floor(centavos / 100).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  const resto = centavos % 100;
+  return resto === 0 ? entero : `${entero},${String(resto).padStart(2, '0')}`;
+}
