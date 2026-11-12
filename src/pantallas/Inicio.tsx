@@ -225,8 +225,9 @@ export function Inicio({
                   {ICONO_CUENTA[c.tipo]}
                 </span>
                 <span className="cuenta-nombre">{c.nombre}</span>
-                <span className={`num cuenta-saldo${saldo < 0 ? ' negativo' : ''}`}>
-                  {formatearMonto(saldo, c.moneda)}
+                {/* Con el ojito no se ve ni el monto ni si está en negativo. */}
+                <span className={`num cuenta-saldo${saldo < 0 && !oculto ? ' negativo' : ''}`}>
+                  {oculto ? `${c.moneda === 'USD' ? 'US$' : '$'} ••••` : formatearMonto(saldo, c.moneda)}
                 </span>
               </li>
             );
@@ -255,8 +256,8 @@ export function Inicio({
                       {categoria.emoji} {categoria.nombre}
                     </span>
                     <span className="num">
-                      {formatearMonto(gastado, 'ARS', { sinDecimales: true })}
-                      {pres && (
+                      {oculto ? '$ ••••' : formatearMonto(gastado, 'ARS', { sinDecimales: true })}
+                      {pres && !oculto && (
                         <span className="suave"> / {formatearMonto(pres.tope, 'ARS', { sinDecimales: true })}</span>
                       )}
                     </span>
@@ -276,8 +277,8 @@ export function Inicio({
                   {pres && pres.nivel !== 'ok' && (
                     <span className={`barra-aviso ${pres.nivel}`}>
                       {pres.nivel === 'pasado'
-                        ? `Te pasaste ${formatearMonto(pres.gastado - pres.tope, 'ARS', { sinDecimales: true })}`
-                        : `Quedan ${formatearMonto(pres.tope - pres.gastado, 'ARS', { sinDecimales: true })}`}
+                        ? `Te pasaste ${oculto ? '$ ••••' : formatearMonto(pres.gastado - pres.tope, 'ARS', { sinDecimales: true })}`
+                        : `Quedan ${oculto ? '$ ••••' : formatearMonto(pres.tope - pres.gastado, 'ARS', { sinDecimales: true })}`}
                     </span>
                   )}
                 </button>
