@@ -20,7 +20,9 @@ aparece un aviso amarillo.
 **Actualizaciones.** Cada vez que la app vuelve a primer plano pregunta si
 hay versión nueva. Si llega mientras no estás haciendo nada, se recarga
 sola; si tenés una hoja abierta o estás escribiendo, espera a la próxima vez
-que vuelvas a la app. Nunca recarga en medio de lo que estás usando. En Ajustes, abajo de todo, dice
+que vuelvas a la app. Nunca recarga en medio de lo que estás usando. Al volver a la app otro día
+(o si la dejás abierta a la medianoche) se pone en el día nuevo: la semana,
+el mes y los fijos se recalculan solos. En Ajustes, abajo de todo, dice
 qué versión corre (fecha y commit), desde dónde está abierta y cuántos
 movimientos, proyectos y notas hay guardados ahí.
 
@@ -28,7 +30,7 @@ movimientos, proyectos y notas hay guardados ahí.
 
 | Pantalla | Qué muestra |
 | --- | --- |
-| Inicio | Patrimonio total en pesos y dólares (con un ojito para ocultar los montos), lo que entró y gastaste en el mes, **cuánto te queda para el mes**, **cuánto llevás gastado en la semana** (vuelve a cero el día que elijas en Ajustes → Semana; si no elegiste, el lunes), gastos fijos para confirmar, saldo por cuenta y gasto por categoría con presupuesto. |
+| Inicio | Patrimonio total en pesos y dólares (con un ojito que oculta todos los montos de la pantalla: total, mes, semana, fijos, cuentas y categorías), lo que entró y gastaste en el mes, **cuánto te queda para el mes**, **cuánto llevás gastado en la semana** (vuelve a cero el día que elijas en Ajustes → Semana; si no elegiste, el lunes), gastos fijos para confirmar, saldo por cuenta y gasto por categoría con presupuesto. |
 | Movimientos | Mes por mes, agrupado por día con lo gastado ese día, y filtro por cuenta y categoría. El buscador busca en **todos los meses**, sin importar acentos, por nota, categoría, cuenta o monto exacto ("2500"). Si cargaste algo con fecha futura, se puede ir hasta ese mes. Tocás uno para editarlo o borrarlo. |
 | Reportes | Cruza cuentas, categorías, movimientos, dólar e inflación, y muestra la inflación mes a mes. Ver abajo. |
 | Proyectos | Proyectos con presupuesto, objetivos y notas propias; y aparte, Notas sueltas estilo Todoist. Ver abajo. |
@@ -55,8 +57,7 @@ movimientos (`src/dominio/sugerencias.ts`, `src/dominio/calculadora.ts`).
 ### Cuánto te queda
 
 En la tarjeta azul, cuando este mes ya entró algo: **lo que entró, menos lo
-gastado y los gastos fijos que faltan pagar**, y eso dividido por los días
-que quedan del mes (contando hoy). Si da negativo dice "Gastaste $ X más de
+gastado y los gastos fijos que faltan pagar**. Si da negativo dice "Gastaste $ X más de
 lo que entró" o, si es por los fijos que faltan, "te faltan $ X para cerrar
 el mes". No cuenta lo que ya tenías ahorrado: es la cuenta del mes.
 
@@ -92,7 +93,7 @@ Alquiler, servicios, suscripciones, el sueldo. Módulo aparte
 | Todo se guarda en centavos enteros | Con decimales binarios los saldos se desvían de a poco. |
 | Comprar dólares es una **transferencia** ARS → USD con los dos montos | No es gasto. La app muestra el tipo de cambio que pagaste. |
 | Un gasto en USD guarda la cotización del día que lo cargaste | El presupuesto de marzo no cambia porque el dólar suba en abril. |
-| Dólar de referencia: **MEP venta** por defecto | Se cambia en Ajustes (oficial, blue, CCL, tarjeta, cripto) o se carga a mano. |
+| Dólar de referencia: **MEP venta** por defecto | Se cambia en Ajustes (oficial, blue, CCL, tarjeta, cripto) o se carga a mano ("1.450" o "1.450,50"; si no es un número, no se guarda). |
 | Sin internet se usa la última cotización bajada | Se ve cuándo se bajó y la marca "sin conexión". |
 | Corregir el saldo de una cuenta ajusta el saldo inicial | El ajuste no aparece como gasto ni ingreso y no ensucia el mes. |
 | Borrar un movimiento lo marca como borrado | Así importar un backup viejo no lo revive. |
