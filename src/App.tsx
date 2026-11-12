@@ -5,10 +5,11 @@ import { guardarRespaldo, tocaBackup } from './datos/backup';
 import { actualizarCotizaciones } from './datos/cotizacion';
 import { pedirAlmacenamientoPersistente } from './datos/db';
 import { repositorio } from './datos/repositorio';
-import { hoy, mesDe } from './dominio/fechas';
+import { mesDe } from './dominio/fechas';
 import type { Movimiento } from './dominio/tipos';
 import type { DatosMovimiento } from './dominio/validar';
 import { useBilletera } from './estado/useBilletera';
+import { useHoy } from './estado/useHoy';
 import { repoFijos } from './fijos/repositorio';
 import type { Fijo } from './fijos/tipos';
 import { Ajustes } from './pantallas/Ajustes';
@@ -54,7 +55,11 @@ export function App() {
   const billetera = useBilletera();
   const { ajustes, cargando } = billetera;
   const [pantalla, setPantalla] = useState<IdPantalla>('inicio');
-  const [mes, setMes] = useState(mesDe(hoy()));
+  // Cambia solo al pasar la medianoche o al volver a la app al día siguiente:
+  // así Inicio, Reportes y los fijos se vuelven a calcular con el día nuevo.
+  const hoyStr = useHoy();
+  const [mes, setMes] = useState(mesDe(hoyStr));
+  const mesActual = useRef(mesDe(hoyStr));
   const [filtroCategoria, setFiltroCategoria] = useState<string | null>(null);
   const [formulario, setFormulario] = useState<{
     existente: Movimiento | null;
@@ -72,6 +77,15 @@ export function App() {
     setAviso({ texto, deshacer });
     temporizador.current = window.setTimeout(() => setAviso(null), deshacer ? 5000 : 2500);
   }, []);
+
+  /* Empezó un mes nuevo: si Movimientos mostraba el mes en curso, pasa al nuevo. */
+  useEffect(() => {
+    const nuevo = mesDe(hoyStr);
+    if (nuevo === mesActual.current) return;
+    const viejo = mesActual.current;
+    mesActual.current = nuevo;
+    setMes((m) => (m === viejo ? nuevo : m));
+  }, [hoyStr]);
 
   /* Primer uso, almacenamiento persistente y cotización. */
   useEffect(() => {
@@ -214,7 +228,7 @@ export function App() {
             billetera={billetera}
             enLinea={enLinea}
             irAMovimientos={(categoriaId) => {
-              setMes(mesDe(hoy()));
+              setMes(mesDe(hoyStr));
               setFiltroCategoria(categoriaId);
               irA('movimientos');
             }}
