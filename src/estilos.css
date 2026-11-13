@@ -429,13 +429,28 @@ button, input, select, textarea { font: inherit; color: inherit; font-size: 16px
   cursor: pointer;
 }
 div.barra { cursor: default; }
-.barra-texto { display: flex; justify-content: space-between; gap: 10px; font-size: 15px; font-weight: 600; }
+.barra-texto { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; }
 .barra-texto > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .barra-texto .num { white-space: nowrap; font-weight: 700; }
 .barra-texto .suave { font-weight: 500; }
 .barra-pista { height: 8px; border-radius: 99px; background: var(--superficie-alta); overflow: hidden; }
 .barra-relleno { display: block; height: 100%; border-radius: 99px; background: var(--pista-sin-tope); }
 .barra-pista[data-nivel='ok'] .barra-relleno { background: var(--degradado); }
+
+/* Inicio: cada categoría con su color (el mismo del círculo en Movimientos),
+   un poco más grande. Cerca del tope y pasado siguen en ámbar y rojo, con el
+   aviso en palabras abajo. */
+.barras .barra { gap: 12px; padding: 16px 18px; }
+.barras .barra-texto { font-size: 18px; font-weight: 700; }
+.barras .barra-texto .num { font-size: 18px; font-weight: 800; }
+.barra-nombre { display: flex; align-items: center; gap: 10px; }
+.barra-nombre-texto { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.barra-emoji { flex: none; font-size: 24px; line-height: 1; }
+.barras .barra-pista { height: 11px; }
+.barras .barra-pista:is([data-nivel='sin'], [data-nivel='ok']) .barra-relleno {
+  min-width: 11px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--c, var(--acento)) 70%, #fff), var(--c, var(--acento)));
+}
 .barra-pista[data-nivel='cerca'] .barra-relleno { background: var(--ambar); }
 .barra-pista[data-nivel='pasado'] .barra-relleno { background: var(--rojo); }
 .barra-aviso { font-size: 13px; font-weight: 600; }

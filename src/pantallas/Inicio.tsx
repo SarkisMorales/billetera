@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
+import { colorCategoria } from '../componentes/colores';
 import {
   cotizacionVigente,
   estadoPresupuestos,
@@ -250,10 +251,18 @@ export function Inicio({
           <ul className="barras">
             {filas.map(({ categoria, gastado, pres }) => (
               <li key={categoria.id}>
-                <button type="button" className="barra" onClick={() => irAMovimientos(categoria.id)}>
+                <button
+                  type="button"
+                  className="barra"
+                  style={{ '--c': colorCategoria(categoria) } as CSSProperties}
+                  onClick={() => irAMovimientos(categoria.id)}
+                >
                   <span className="barra-texto">
-                    <span>
-                      {categoria.emoji} {categoria.nombre}
+                    <span className="barra-nombre">
+                      <span className="barra-emoji" aria-hidden>
+                        {categoria.emoji}
+                      </span>
+                      <span className="barra-nombre-texto">{categoria.nombre}</span>
                     </span>
                     <span className="num">
                       {oculto ? '$ ••••' : formatearMonto(gastado, 'ARS', { sinDecimales: true })}
