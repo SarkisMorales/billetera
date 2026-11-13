@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useMemo, useState, type CSSProperties } from 'react';
 import { ArchivosTransferencias } from '../componentes/ArchivosTransferencias';
-import { colorCategoria } from '../componentes/colores';
+import { ICONO_CUENTA, colorCategoria } from '../componentes/colores';
 import { EditorCategoria, EditorCuenta } from '../componentes/Editores';
 import { montoEnVivo } from '../componentes/montoEnVivo';
 import { NOMBRE_DONDE, dondeCorre } from '../datos/actualizacion';
@@ -96,46 +96,48 @@ export function Ajustes({
         <p className="ayuda">
           Con éste se valúan tus dólares y los gastos en USD. Se actualiza solo cuando hay conexión.
         </p>
-        <div className="fichas">
-          {(Object.keys(NOMBRE_CASA) as (keyof typeof NOMBRE_CASA)[]).map((casa) => {
-            const c = ajustes.cotizaciones.find((x) => x.casa === casa);
-            return (
-              <button
-                key={casa}
-                type="button"
-                className="ficha"
-                aria-pressed={ajustes.casa === casa}
-                onClick={() => repositorio.guardarAjustes({ casa })}
-              >
-                <span>{NOMBRE_CASA[casa]}</span>
-                <span className="ficha-sub num">{c ? `$ ${c.venta.toLocaleString('es-AR')}` : '—'}</span>
-              </button>
-            );
-          })}
-        </div>
-        <div className="fila-ajuste">
-          <span className="ayuda">
-            {ajustes.cotizacionesBajadasEn
-              ? `Bajada ${fechaHora(ajustes.cotizacionesBajadasEn)} · dolarapi.com`
-              : 'Nunca se bajó'}
-          </span>
-          <button type="button" className="btn chico" onClick={refrescar} disabled={!enLinea || bajando}>
-            {bajando ? 'Bajando…' : enLinea ? 'Actualizar' : 'Sin conexión'}
-          </button>
-        </div>
-        <div className="fila-campos">
-          <label className="campo crece">
-            <span>Cotización manual (pisa a la de internet)</span>
-            <input
-              inputMode="decimal"
-              placeholder="Vacío = usar internet"
-              value={manualTexto}
-              onChange={(e) => setManualTexto(montoEnVivo(e.target.value))}
-            />
-          </label>
-          <button type="button" className="btn alinear-abajo" onClick={guardarManual}>
-            Usar
-          </button>
+        <div className="tarjeta-opcion tarjeta-dolar">
+          <div className="fichas">
+            {(Object.keys(NOMBRE_CASA) as (keyof typeof NOMBRE_CASA)[]).map((casa) => {
+              const c = ajustes.cotizaciones.find((x) => x.casa === casa);
+              return (
+                <button
+                  key={casa}
+                  type="button"
+                  className="ficha"
+                  aria-pressed={ajustes.casa === casa}
+                  onClick={() => repositorio.guardarAjustes({ casa })}
+                >
+                  <span>{NOMBRE_CASA[casa]}</span>
+                  <span className="ficha-sub num">{c ? `$ ${c.venta.toLocaleString('es-AR')}` : '—'}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="fila-ajuste">
+            <span className="ayuda">
+              {ajustes.cotizacionesBajadasEn
+                ? `Bajada ${fechaHora(ajustes.cotizacionesBajadasEn)} · dolarapi.com`
+                : 'Nunca se bajó'}
+            </span>
+            <button type="button" className="btn chico" onClick={refrescar} disabled={!enLinea || bajando}>
+              {bajando ? 'Bajando…' : enLinea ? 'Actualizar' : 'Sin conexión'}
+            </button>
+          </div>
+          <div className="fila-campos">
+            <label className="campo crece">
+              <span>Cotización manual (pisa a la de internet)</span>
+              <input
+                inputMode="decimal"
+                placeholder="Vacío = usar internet"
+                value={manualTexto}
+                onChange={(e) => setManualTexto(montoEnVivo(e.target.value))}
+              />
+            </label>
+            <button type="button" className="btn alinear-abajo" onClick={guardarManual}>
+              Usar
+            </button>
+          </div>
         </div>
       </section>
 
@@ -154,6 +156,9 @@ export function Ajustes({
               className={`fila${c.archivada ? ' archivada' : ''}`}
               onClick={() => setEditando({ que: 'cuenta', cuenta: c })}
             >
+              <span className="fila-icono" aria-hidden>
+                {ICONO_CUENTA[c.tipo]}
+              </span>
               <span className="fila-texto">
                 <span className="fila-titulo">{c.nombre}</span>
                 <span className="fila-sub">

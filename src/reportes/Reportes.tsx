@@ -24,6 +24,7 @@ import {
   type Unidad,
 } from './calculos';
 import { Barras, Columnas, Variacion, type Barra } from './Graficos';
+import { colorCategoria } from '../componentes/colores';
 import { actualizarHistoricos, historicosGuardados } from './historicos';
 import './reportes.css';
 
@@ -170,6 +171,7 @@ function VistaPeriodo({
       clave: f.id || 'sin',
       icono: c?.emoji ?? '•',
       nombre: c?.nombre ?? 'Sin categoría',
+      color: colorCategoria(c),
       valor: f.total,
       parte: f.parte,
       variacion: comparable ? variacion(f.total, f.anterior) : undefined,

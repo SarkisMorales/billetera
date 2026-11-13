@@ -234,7 +234,9 @@ export const UMBRAL_HORMIGA_USD = 5;
 export const MAX_HALLAZGOS = 6;
 
 /** Espacios que no cortan línea: que "$ 10.400" o "▲ 12%" no queden partidos en dos renglones. */
-const pegado = (s: string) => s.replace(/ /g, '\u00a0');
+// Sin cortes de línea dentro: los espacios pasan a no separables y entre el signo y el $ va
+// un unidor invisible (si no, el navegador puede dejar el "−" solo al final de una línea).
+const pegado = (s: string) => s.replace(/ /g, '\u00a0').replace(/^([−+])/, '$1\u2060');
 const pct = (x: number) => `${Math.round(Math.abs(x) * 100)}%`;
 /** "▲ 22% más" / "▼ 8% menos": nunca sólo un color. */
 const flecha = (x: number) => (x >= 0 ? `${pegado(`▲ ${pct(x)}`)} más` : `${pegado(`▼ ${pct(x)}`)} menos`);

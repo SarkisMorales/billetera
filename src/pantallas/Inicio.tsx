@@ -1,5 +1,5 @@
 import { useMemo, useState, type CSSProperties } from 'react';
-import { colorCategoria } from '../componentes/colores';
+import { ICONO_CUENTA, colorCategoria } from '../componentes/colores';
 import {
   cotizacionVigente,
   estadoPresupuestos,
@@ -11,20 +11,13 @@ import {
 } from '../dominio/calculos';
 import { formatearMonto } from '../dominio/dinero';
 import { diasEntre, diaYMes, hoy, mesDe, nombreMes } from '../dominio/fechas';
-import { NOMBRE_CASA, type Cuenta } from '../dominio/tipos';
+import { NOMBRE_CASA } from '../dominio/tipos';
 import type { Billetera } from '../estado/useBilletera';
 import { faltaPagarEsteMes } from '../fijos/calculos';
 import { TarjetaFijos } from '../fijos/TarjetaFijos';
 import type { Fijo } from '../fijos/tipos';
 import { useFijos } from '../fijos/useFijos';
 import { TarjetaSemana } from '../semana/TarjetaSemana';
-
-const ICONO_CUENTA: Record<Cuenta['tipo'], string> = {
-  efectivo: '💵',
-  banco: '🏦',
-  virtual: '📱',
-  otro: '💳',
-};
 
 const CLAVE_OCULTAR = 'billetera.ocultarMontos';
 
@@ -264,10 +257,10 @@ export function Inicio({
                       </span>
                       <span className="barra-nombre-texto">{categoria.nombre}</span>
                     </span>
-                    <span className="num">
+                    <span className="num barra-monto">
                       {oculto ? '$ ••••' : formatearMonto(gastado, 'ARS', { sinDecimales: true })}
                       {pres && !oculto && (
-                        <span className="suave"> / {formatearMonto(pres.tope, 'ARS', { sinDecimales: true })}</span>
+                        <span className="barra-tope suave">de {formatearMonto(pres.tope, 'ARS', { sinDecimales: true })}</span>
                       )}
                     </span>
                   </span>

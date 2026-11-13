@@ -125,7 +125,7 @@ button, input, select, textarea { font: inherit; color: inherit; font-size: 16px
   padding: 4px 20px calc(var(--pestanas) + var(--abajo) + 110px);
 }
 
-.pantalla { display: grid; gap: 24px; }
+.pantalla { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; }
 
 /* Fondo detrás de la barra de abajo: lo que scrollea no se ve debajo ni al costado
    de la barra (en el iPhone asomaba entre la barra y el borde de la pantalla).
@@ -368,7 +368,7 @@ button, input, select, textarea { font: inherit; color: inherit; font-size: 16px
 /* ---------- Bloques y tarjetas ---------- */
 
 .bloque { display: grid; gap: 12px; }
-.bloque-cabecera { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.bloque-cabecera { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 10px; }
 .bloque-titulo { font-size: 19px; font-weight: 700; }
 
 .cuentas, .lista, .kpis {
@@ -415,7 +415,7 @@ button, input, select, textarea { font: inherit; color: inherit; font-size: 16px
 .kpi .rotulo { font-size: 14px; text-transform: none; letter-spacing: 0; }
 .kpi-valor { font-size: 18px; font-weight: 700; white-space: nowrap; }
 
-.barras { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.barras { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
 .barra {
   display: grid;
   gap: 8px;
@@ -446,6 +446,9 @@ div.barra { cursor: default; }
 .barra-nombre { display: flex; align-items: center; gap: 10px; }
 .barra-nombre-texto { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .barra-emoji { flex: none; font-size: 24px; line-height: 1; }
+/* El tope va abajo del monto, más chico: al lado no entraba en un teléfono. */
+.barra-monto { display: grid; justify-items: end; line-height: 1.2; }
+.barras .barra-texto .barra-tope { font-size: 13px; font-weight: 500; }
 .barras .barra-pista { height: 11px; }
 .barras .barra-pista:is([data-nivel='sin'], [data-nivel='ok']) .barra-relleno {
   min-width: 11px;
@@ -777,6 +780,12 @@ div.barra { cursor: default; }
 }
 .tarjeta-opcion-texto { display: grid; gap: 4px; }
 .tarjeta-opcion h3 { font-size: 16px; font-weight: 700; }
+
+/* Ajustes → Dólar: todo en una tarjeta; las casas en dos filas de tres. */
+.tarjeta-dolar .fichas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.tarjeta-dolar .ficha { background: var(--superficie-alta); border-color: transparent; box-shadow: none; }
+.tarjeta-dolar .ficha[aria-pressed='true'] { background: var(--acento-suave); border-color: var(--acento); }
+.tarjeta-dolar .campo input { background: var(--superficie-alta); border-color: transparent; box-shadow: none; }
 
 .archivo-resumen {
   display: grid;

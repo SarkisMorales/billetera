@@ -1,4 +1,12 @@
-import type { Categoria } from '../dominio/tipos';
+import type { Categoria, Cuenta } from '../dominio/tipos';
+
+/** El ícono de cada tipo de cuenta: el mismo en Inicio y en Ajustes. */
+export const ICONO_CUENTA: Record<Cuenta['tipo'], string> = {
+  efectivo: '💵',
+  banco: '🏦',
+  virtual: '📱',
+  otro: '💳',
+};
 
 /**
  * Un color fijo por categoría, para el círculo de su ícono. Sale del orden de

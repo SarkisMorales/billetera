@@ -117,7 +117,7 @@ describe('categorías', () => {
       { id: 'salidas', total: 100_00, anterior: 0, parte: 0.25 },
     ]);
 
-    const textos = hallazgos(datos(movs), p, (c) => String(c / 100)).map((h) => h.texto.replace(/\u00a0/g, ' '));
+    const textos = hallazgos(datos(movs), p, (c) => String(c / 100)).map((h) => h.texto.replace(/\u00a0/g, ' ').replace(/\u2060/g, ''));
     expect(textos[0]).toBe('super es lo que más subió: 100 más que el mes pasado al día 15 (▲ 50% más).');
   });
 
@@ -268,7 +268,7 @@ describe('lectura de las APIs', () => {
 
 describe('lo que llama la atención', () => {
   const textos = (d: Datos, p: ReturnType<typeof rangoPeriodo>, o?: Parameters<typeof hallazgos>[3]) =>
-    hallazgos(d, p, (c) => String(Math.round(c / 100)), o).map((h) => h.texto.replace(/\u00a0/g, ' '));
+    hallazgos(d, p, (c) => String(Math.round(c / 100)), o).map((h) => h.texto.replace(/\u00a0/g, ' ').replace(/\u2060/g, ''));
 
   it('avisa si una cuenta quedó en negativo, sólo mirando el mes en curso', () => {
     const p = rangoPeriodo('mes', '2026-10-15');

@@ -217,6 +217,11 @@
 .barra-h-fila { display: flex; align-items: center; gap: 10px; }
 .barra-h-pista { flex: 1; height: 8px; border-radius: 99px; background: var(--superficie-alta); overflow: hidden; }
 .barra-h-relleno { display: block; height: 100%; border-radius: 99px; background: var(--degradado); }
+/* En qué se fue: cada categoría con su color, igual que en Inicio. */
+.barra-h-relleno[style*='--c'] {
+  min-width: 8px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--c) 70%, #fff), var(--c));
+}
 .barra-h-parte { font-size: 13px; color: var(--texto-suave); min-width: 34px; text-align: right; }
 
 .variacion {

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 
 /** Tope "lindo" para el eje: 1, 2, 2,5 o 5 por potencia de diez. */
 export function topeEje(max: number): number {
@@ -133,6 +133,8 @@ export interface Barra {
   icono?: string;
   nombre: string;
   valor: number;
+  /** Color de la barra (el de la categoría); sin él, el azul de siempre. */
+  color?: string;
   /** 0 a 1, contra el total. */
   parte: number;
   /** Variación contra el período anterior; null si no hay con qué comparar. */
@@ -163,7 +165,10 @@ export function Barras({ datos, formato }: { datos: Barra[]; formato: (v: number
           </div>
           <div className="barra-h-fila">
             <span className="barra-h-pista">
-              <span className="barra-h-relleno" style={{ width: `${(d.parte / max) * 100}%` }} />
+              <span
+                className="barra-h-relleno"
+                style={{ width: `${(d.parte / max) * 100}%`, ...(d.color && { '--c': d.color }) } as CSSProperties}
+              />
             </span>
             <span className="barra-h-parte num">{Math.round(d.parte * 100)}%</span>
             {d.variacion !== undefined && <Variacion v={d.variacion} />}
