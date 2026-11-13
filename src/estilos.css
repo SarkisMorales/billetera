@@ -127,6 +127,21 @@ button, input, select, textarea { font: inherit; color: inherit; font-size: 16px
 
 .pantalla { display: grid; gap: 24px; }
 
+/* Fondo detrás de la barra de abajo: lo que scrollea no se ve debajo ni al costado
+   de la barra (en el iPhone asomaba entre la barra y el borde de la pantalla).
+   Arriba se funde en 18px para que las tarjetas no se corten de golpe. */
+.app::after {
+  content: '';
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9;
+  height: calc(var(--abajo) + 10px + var(--pestanas) + 18px);
+  background: linear-gradient(to bottom, transparent, var(--fondo) 18px);
+  pointer-events: none;
+}
+
 .barra-pestanas {
   position: fixed;
   left: 12px;
